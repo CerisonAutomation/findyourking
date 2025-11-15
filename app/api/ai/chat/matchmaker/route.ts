@@ -1,0 +1,68 @@
+import { streamText } from 'ai';
+import { createGateway } from '@ai-sdk/gateway';
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+
+export const runtime = 'edge';
+
+const gateway = createGateway({
+  apiKey: process.env.AI_GATEWAY_API_KEY,
+  baseURL: 'https://ai-gateway.vercel.sh/v1', // Explicitly use Vercel AI Gateway base URL
+  headers: {
+    'http-referer': process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000',
+    'x-title': 'FindYourKing AI Matchmaker API',
+  },
+});
+
+const matchmakerRequestSchema = z.object({
+  messages: z.array(z.object({
+    role: z.enum(["user", "assistant", "system"]),
+    content: z.string().min(1, "Message content cannot be empty"),
+  })).min(1, "Messages array cannot be empty"),
+  userId: z.string().uuid("Invalid User ID"), // Assuming userId is a UUID
+  targetUserId: z.string().uuid("Invalid Target User ID"), // The user to match with
+});
+
+export async function POST(req: Request) {
+  const body = await req.json();
+  const parsed = matchmakerRequestSchema.safeParse(body);
+
+  if (!parsed.success) {
+    const message = parsed.error.errors.map(e => e.message).join(", ");
+    return new NextResponse(JSON.stringify({ error: message }), {
+      status: 400,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  }
+
+  const { messages, userId, targetUserId } = parsed.data;
+
+  try {
+    // In a real scenario, you would fetch user profiles and preferences
+    // for both userId and targetUserId to provide to the AI for matchmaking.
+    // For this example, we'll just use a generic prompt.
+
+    const systemMessage = `You are an AI Matchmaker. Your goal is to help users find compatible partners.
+    Analyze the conversation history and user profiles (if provided) to suggest conversation starters,
+    highlight common interests, and provide insights into potential compatibility.
+    Be friendly, encouraging, and insightful.`;
+
+    const result = await streamText({
+      model: gateway('ollama/qwen3-coder:480b'), // Use the gateway with the Ollama model
+      messages: [{ role: 'system', content: systemMessage }, ...messages],
+    });
+
+    return result.toResponse();
+  } catch (err) {
+    const error = err as Error;
+    console.error('Error in AI Matchmaker:', error);
+    return new NextResponse(JSON.stringify({ error: 'AI service temporarily unavailable' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  }
+}
