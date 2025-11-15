@@ -13,7 +13,12 @@ export async function POST(req: Request) {
 
   if (!parsed.success) {
     const message = parsed.error.errors.map(e => e.message).join(", ");
-    return new Response(message, { status: 400 });
+    return new Response(JSON.stringify({ error: message }), {
+      status: 400,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 
   const { bookingId } = parsed.data;
@@ -25,7 +30,13 @@ export async function POST(req: Request) {
 
   if (!user) {
     // Redirect to login if user is not authenticated
-    return redirect("/auth/login");
+    // For API routes, it's better to return an unauthorized response
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 
   const { data: booking, error } = await supabase
@@ -35,12 +46,22 @@ export async function POST(req: Request) {
     .single();
 
   if (error || !booking) {
-    return new Response("Booking not found", { status: 404 });
+    return new Response(JSON.stringify({ error: "Booking not found" }), {
+      status: 404,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 
   const parsedTotalPrice = parseFloat(booking.total_price);
   if (isNaN(parsedTotalPrice)) {
-    return new Response("Invalid booking total price", { status: 400 });
+    return new Response(JSON.stringify({ error: "Invalid booking total price" }), {
+      status: 400,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 
   try {
@@ -80,6 +101,11 @@ export async function POST(req: Request) {
     });
   } catch (stripeError: any) {
     console.error('Error creating Stripe checkout session:', stripeError);
-    return new Response(stripeError.message || 'Internal Server Error', { status: 500 });
+    return new Response(JSON.stringify({ error: stripeError.message || 'Internal Server Error' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 }
