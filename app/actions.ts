@@ -213,3 +213,30 @@ export async function createBooking(formData: FormData) {
 
   return { error: null, bookingId: data[0].id };
 }
+
+export async function resendVerificationEmail(formData: FormData) {
+  const parsed = sendMagicLinkSchema.safeParse(Object.fromEntries(formData.entries())); // Re-using sendMagicLinkSchema as it only needs email
+
+  if (!parsed.success) {
+    const message = parsed.error.errors.map(e => e.message).join(", ");
+    return { error: message };
+  }
+
+  const origin = headers().get("origin");
+  const { email } = parsed.data;
+  const supabase = await createClient();
+
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: {
+      emailRedirectTo: `${origin}/auth/confirm`,
+    },
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { error: null, message: "Verification email re-sent. Check your inbox." };
+}
