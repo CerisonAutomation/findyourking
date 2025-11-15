@@ -147,7 +147,7 @@ export async function updateProfile(formData: FormData) {
       full_name: fullName,
       avatar_url: avatarUrl,
       bio,
-      updated_at: new Date().toISOString(),
+
     })
     .eq("id", userId);
 
