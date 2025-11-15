@@ -33,6 +33,9 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="stylesheet" href="/globals.css" /> {/* Explicitly link global CSS as a robust fallback */}
+      </head>
       <body className={`font-sans antialiased bg-background text-foreground`}> {/* Using a generic system font, with fallback background/text colors */}
         <ThemeProvider
           attribute="class"
