@@ -43,3 +43,7 @@ export const chatRequestSchema = z.object({
   })).min(1, "Messages array cannot be empty"),
   kingId: z.string().min(1, "King ID is required for chat"),
 });
+
+export const stripeCheckoutSchema = z.object({
+  bookingId: z.string().min(1, "Booking ID is required"),
+});
