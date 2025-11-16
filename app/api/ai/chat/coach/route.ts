@@ -6,10 +6,10 @@ import { z } from 'zod';
 export const runtime = 'edge';
 
 const gateway = createGateway({
-  apiKey: process.env.AI_GATEWAY_API_KEY,
+  apiKey: process.env['AI_GATEWAY_API_KEY'],
   baseURL: 'https://ai-gateway.vercel.sh/v1', // Explicitly use Vercel AI Gateway base URL
   headers: {
-    'http-referer': process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000',
+    'http-referer': process.env['VERCEL_URL'] ? `https://${process.env['VERCEL_URL']}` : 'http://localhost:3000',
     'x-title': 'FindYourKing AI Coach API',
   },
 });
