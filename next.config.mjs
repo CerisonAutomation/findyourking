@@ -5,9 +5,8 @@ const nextConfig = {
     // your project has type errors.
     ignoreBuildErrors: true,
   },
-  eslint: {
-    // Continue to show ESLint warnings but don't fail the build
-    ignoreDuringBuilds: false,
+  turbopack: {
+    root: '.',
   },
   images: {
     remotePatterns: [
