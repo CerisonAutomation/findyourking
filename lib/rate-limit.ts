@@ -97,7 +97,7 @@ function getRateLimiter(): DistributedRateLimiter {
   // In a real production environment, you would initialize and return
   // a RedisRateLimiter or UpstashRateLimiter here.
   // For this example, we'll use the in-memory mock.
-  if (process.env.NODE_ENV === 'production' && process.env.REDIS_URL) {
+  if (process.env['NODE_ENV'] === 'production' && process.env['REDIS_URL']) {
     // return new RedisRateLimiter(process.env.REDIS_URL);
     console.warn('Using in-memory rate limiter in production. Consider a distributed solution like Redis/Upstash.')
   }
@@ -129,7 +129,7 @@ export async function checkRateLimit(
   const remaining = Math.max(0, config.maxRequests - entry.count)
   
   // Standard rate limit headers (RFC 6585)
-  const headers = {
+  const headers: Record<string, string> = {
     'X-RateLimit-Limit': String(config.maxRequests),
     'X-RateLimit-Remaining': String(remaining),
     'X-RateLimit-Reset': String(Math.ceil(entry.resetTime / 1000)),

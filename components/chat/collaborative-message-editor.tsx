@@ -6,7 +6,7 @@ import * as Y from 'yjs';
 import 'quill/dist/quill.bubble.css'; // Using bubble theme without toolbar
 import { Button } from '@/components/ui/button';
 
-const Quill = dynamic(() => import('quill'), { ssr: false });
+const Quill = dynamic(() => import('quill').then((mod) => mod.default || mod), { ssr: false });
 
 interface CollaborativeMessageEditorProps {
   /** The initial content of the message to be edited. */
@@ -37,7 +37,7 @@ export const CollaborativeMessageEditor = ({
   onCancel,
 }: CollaborativeMessageEditorProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
-  const quillRef = useRef<Quill | null>(null);
+  const quillRef = useRef<typeof Quill | null>(null);
   const ydocRef = useRef<Y.Doc | null>(null);
   const isLocalChangeRef = useRef<boolean>(false);
   const [currentContent, setCurrentContent] = useState<string>(initialContent);
@@ -68,7 +68,7 @@ export const CollaborativeMessageEditor = ({
   useEffect(() => {
     if (!editorRef.current) return;
 
-    const quill = new Quill(editorRef.current, {
+    const quill = new (Quill as any)(editorRef.current, {
       placeholder: 'Edit your message...',
       theme: 'bubble',
       formats: [],
@@ -101,7 +101,7 @@ export const CollaborativeMessageEditor = ({
     channel.on('broadcast', { event: `message-update-${messageId}` }, handleBroadcast);
 
     // Listen for Quill text changes and broadcast them
-    quill.on('text-change', (delta, oldDelta, source) => {
+    quill.on('text-change', (delta: any, oldDelta: any, source: string) => {
       if (source !== 'user' || isLocalChangeRef.current) return;
 
       ytext.delete(0, ytext.length);

@@ -33,11 +33,11 @@ describe('Rate Limiting', () => {
     expect(result2.remaining).toBe(1);
   });
 
-  it('blocks requests over limit', () => {
+  it('blocks requests over limit', async () => {
     checkRateLimit(identifier, { maxRequests: 2, windowMs: 60000 });
     checkRateLimit(identifier, { maxRequests: 2, windowMs: 60000 });
 
-    const result = checkRateLimit(identifier, {
+    const result = await checkRateLimit(identifier, {
       maxRequests: 2,
       windowMs: 60000,
     });
@@ -45,8 +45,8 @@ describe('Rate Limiting', () => {
     expect(result.remaining).toBe(0);
   });
 
-  it('includes rate limit headers', () => {
-    const result = checkRateLimit(identifier + '2', {
+  it('includes rate limit headers', async () => {
+    const result = await checkRateLimit(identifier + '2', {
       maxRequests: 10,
       windowMs: 60000,
     });
@@ -56,11 +56,11 @@ describe('Rate Limiting', () => {
     expect(result.headers['X-RateLimit-Reset']).toBeDefined();
   });
 
-  it('includes Retry-After header when blocked', () => {
+  it('includes Retry-After header when blocked', async () => {
     const config = { maxRequests: 1, windowMs: 60000 };
 
-    checkRateLimit(identifier + '3', config);
-    const result = checkRateLimit(identifier + '3', config);
+    await checkRateLimit(identifier + '3', config);
+    const result = await checkRateLimit(identifier + '3', config);
 
     expect(result.headers['Retry-After']).toBeDefined();
   });
