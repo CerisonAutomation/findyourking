@@ -1,12 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    // ⚠️ Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
     ignoreBuildErrors: true,
-  },
-  turbopack: {
-    root: '.',
   },
   images: {
     remotePatterns: [
@@ -18,18 +13,13 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,
   },
-  // Performance optimizations
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion'],
   },
-  // Compression
   compress: true,
-  // Production optimizations
   productionBrowserSourceMaps: false,
   poweredByHeader: false,
-  // Docker standalone output
   output: 'standalone',
-  // Security headers
   async headers() {
     return [
       {

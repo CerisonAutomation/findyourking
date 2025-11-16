@@ -14,7 +14,7 @@ import { AlertTriangle, Table, Wand } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 // Helper to generate a Zod schema from the table's column definitions
-function generateZodSchema(table: { columns: any[] }): z.ZodObject<any, any, any> {
+function generateZodSchema(table: { columns: any[] }): any {
   if (!table || !table.columns) {
     return z.object({})
   }
@@ -52,7 +52,7 @@ function generateZodSchema(table: { columns: any[] }): z.ZodObject<any, any, any
 
     shape[column.name] = fieldSchema
   }
-  return z.object(shape)
+  return z.object(shape) as any
 }
 
 const getPrimaryKeys = (table: any): string[] => {

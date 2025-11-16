@@ -29,7 +29,7 @@ function ProviderSettingsView({
   onSuccess,
 }: {
   projectRef: string
-  schema: z.ZodObject<any> | z.ZodEffects<z.ZodObject<any>>
+  schema: any
   title: string
   initialValues: any
   onSuccess: () => void
@@ -121,7 +121,7 @@ export function AuthManager({ projectRef }: { projectRef: string }) {
     name: string
     icon: React.ReactNode
     description: string
-    schema: z.ZodObject<any> | z.ZodEffects<z.ZodObject<any>>
+    schema: any
   }[] = [
     {
       icon: <Mail className="h-4 w-4 text-muted-foreground" />,
@@ -144,7 +144,7 @@ export function AuthManager({ projectRef }: { projectRef: string }) {
   ]
 
   const handleProviderClick = useCallback(
-    (provider: { name: string; schema: z.ZodObject<any> | z.ZodEffects<z.ZodObject<any>> }) => {
+    (provider: { name: string; schema: any }) => {
       push({
         title: `${provider.name} Provider Settings`,
         component: (

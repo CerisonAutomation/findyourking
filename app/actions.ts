@@ -1,15 +1,23 @@
-"use server";
+'use server';
 
-import { createClient } from "@/lib/supabase/server";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import { signInSchema, signUpSchema, sendMagicLinkSchema, forgotPasswordSchema, updatePasswordSchema, updateProfileSchema, createBookingSchema } from "@/lib/validation";
+import { createClient } from '@/lib/supabase/server';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import {
+  signInSchema,
+  signUpSchema,
+  sendMagicLinkSchema,
+  forgotPasswordSchema,
+  updatePasswordSchema,
+  updateProfileSchema,
+  createBookingSchema,
+} from '@/lib/validation';
 
 export async function signIn(formData: FormData) {
   const parsed = signInSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!parsed.success) {
-    const message = parsed.error.issues.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map((e) => e.message).join(', ');
     return redirect(`/auth/login?message=${message}`);
   }
 
@@ -22,21 +30,22 @@ export async function signIn(formData: FormData) {
   });
 
   if (error) {
-    return redirect("/auth/login?message=Could not authenticate user");
+    return redirect('/auth/login?message=Could not authenticate user');
   }
 
-  return redirect("/protected");
+  return redirect('/protected');
 }
 
 export async function signUp(formData: FormData) {
   const parsed = signUpSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!parsed.success) {
-    const message = parsed.error.issues.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map((e) => e.message).join(', ');
     return redirect(`/auth/sign-up?message=${message}`);
   }
 
-  const origin = headers().get("origin");
+  const headersList = await headers();
+  const origin = headersList.get('origin');
   const { email, password } = parsed.data;
   const supabase = await createClient();
 
@@ -49,49 +58,56 @@ export async function signUp(formData: FormData) {
   });
 
   if (error) {
-    return redirect("/auth/sign-up?message=Could not authenticate user");
+    return redirect('/auth/sign-up?message=Could not authenticate user');
   }
 
-  return redirect("/auth/sign-up-success");
+  return redirect('/auth/sign-up-success');
 }
 
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  return redirect("/auth/login");
+  return redirect('/auth/login');
 }
 
 export async function forgotPassword(formData: FormData) {
-  const parsed = forgotPasswordSchema.safeParse(Object.fromEntries(formData.entries()));
+  const parsed = forgotPasswordSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
 
   if (!parsed.success) {
-    const message = parsed.error.issues.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map((e) => e.message).join(', ');
     return redirect(`/auth/forgot-password?message=${message}`);
   }
 
   const { email } = parsed.data;
   const supabase = await createClient();
 
+  const headersList = await headers();
+  const origin = headersList.get('origin');
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${(await headers()).get("origin")}/auth/update-password`,
+    redirectTo: `${origin}/auth/update-password`,
   });
 
   if (error) {
-    return redirect("/auth/forgot-password?message=Could not send reset email");
+    return redirect('/auth/forgot-password?message=Could not send reset email');
   }
 
-  return redirect("/auth/forgot-password?message=Password reset email sent");
+  return redirect('/auth/forgot-password?message=Password reset email sent');
 }
 
 export async function sendMagicLink(formData: FormData) {
-  const parsed = sendMagicLinkSchema.safeParse(Object.fromEntries(formData.entries()));
+  const parsed = sendMagicLinkSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
 
   if (!parsed.success) {
-    const message = parsed.error.issues.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map((e) => e.message).join(', ');
     return redirect(`/auth/login?message=${message}`);
   }
 
-  const origin = headers().get("origin");
+  const headersList = await headers();
+  const origin = headersList.get('origin');
   const { email } = parsed.data;
   const supabase = await createClient();
 
@@ -103,17 +119,19 @@ export async function sendMagicLink(formData: FormData) {
   });
 
   if (error) {
-    return redirect("/auth/login?message=Could not send magic link");
+    return redirect('/auth/login?message=Could not send magic link');
   }
 
-  return redirect("/auth/login?message=Magic link sent! Check your email.");
+  return redirect('/auth/login?message=Magic link sent! Check your email.');
 }
 
 export async function updatePassword(formData: FormData) {
-  const parsed = updatePasswordSchema.safeParse(Object.fromEntries(formData.entries()));
+  const parsed = updatePasswordSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
 
   if (!parsed.success) {
-    const message = parsed.error.issues.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map((e) => e.message).join(', ');
     return redirect(`/auth/update-password?message=${message}`);
   }
 
@@ -123,17 +141,19 @@ export async function updatePassword(formData: FormData) {
   const { error } = await supabase.auth.updateUser({ password });
 
   if (error) {
-    return redirect("/auth/update-password?message=Could not update password");
+    return redirect('/auth/update-password?message=Could not update password');
   }
 
-  return redirect("/auth/login?message=Password updated successfully");
+  return redirect('/auth/login?message=Password updated successfully');
 }
 
 export async function updateProfile(formData: FormData) {
-  const parsed = updateProfileSchema.safeParse(Object.fromEntries(formData.entries()));
+  const parsed = updateProfileSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
 
   if (!parsed.success) {
-    const message = parsed.error.issues.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map((e) => e.message).join(', ');
     return { error: message };
   }
 
@@ -141,15 +161,14 @@ export async function updateProfile(formData: FormData) {
   const supabase = await createClient();
 
   const { error } = await supabase
-    .from("profiles")
+    .from('profiles')
     .update({
       username,
       full_name: fullName,
       avatar_url: avatarUrl,
       bio,
-
     })
-    .eq("id", userId);
+    .eq('id', userId);
 
   if (error) {
     return { error: error.message };
@@ -159,10 +178,12 @@ export async function updateProfile(formData: FormData) {
 }
 
 export async function createBooking(formData: FormData) {
-  const parsed = createBookingSchema.safeParse(Object.fromEntries(formData.entries()));
+  const parsed = createBookingSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
 
   if (!parsed.success) {
-    const message = parsed.error.issues.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map((e) => e.message).join(', ');
     return { error: message };
   }
 
@@ -173,20 +194,20 @@ export async function createBooking(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { error: "User not authenticated." };
+    return { error: 'User not authenticated.' };
   }
 
   const { king_id, start_time, end_time } = parsed.data;
 
   // Fetch king details to calculate total_price
   const { data: king, error: kingError } = await supabase
-    .from("kings")
-    .select("price_per_hour")
-    .eq("id", king_id)
+    .from('kings')
+    .select('price_per_hour')
+    .eq('id', king_id)
     .single();
 
   if (kingError || !king) {
-    return { error: kingError?.message || "King not found." };
+    return { error: kingError?.message || 'King not found.' };
   }
 
   const durationHours =
@@ -194,18 +215,21 @@ export async function createBooking(formData: FormData) {
     (1000 * 60 * 60);
   const parsedPrice = parseFloat(king.price_per_hour);
   if (isNaN(parsedPrice)) {
-    return { error: "Invalid king price." };
+    return { error: 'Invalid king price.' };
   }
   const total_price = durationHours * parsedPrice;
 
-  const { data, error } = await supabase.from("bookings").insert({
-    user_id: user.id,
-    king_id,
-    start_time,
-    end_time,
-    total_price,
-    status: "pending", // Default status
-  }).select();
+  const { data, error } = await supabase
+    .from('bookings')
+    .insert({
+      user_id: user.id,
+      king_id,
+      start_time,
+      end_time,
+      total_price,
+      status: 'pending', // Default status
+    })
+    .select();
 
   if (error) {
     return { error: error.message };
@@ -215,14 +239,17 @@ export async function createBooking(formData: FormData) {
 }
 
 export async function resendVerificationEmail(formData: FormData) {
-  const parsed = sendMagicLinkSchema.safeParse(Object.fromEntries(formData.entries())); // Re-using sendMagicLinkSchema as it only needs email
+  const parsed = sendMagicLinkSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  ); // Re-using sendMagicLinkSchema as it only needs email
 
   if (!parsed.success) {
-    const message = parsed.error.issues.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map((e) => e.message).join(', ');
     return { error: message };
   }
 
-  const origin = headers().get("origin");
+  const headersList = await headers();
+  const origin = headersList.get('origin');
   const { email } = parsed.data;
   const supabase = await createClient();
 
@@ -238,5 +265,8 @@ export async function resendVerificationEmail(formData: FormData) {
     return { error: error.message };
   }
 
-  return { error: null, message: "Verification email re-sent. Check your inbox." };
+  return {
+    error: null,
+    message: 'Verification email re-sent. Check your inbox.',
+  };
 }
