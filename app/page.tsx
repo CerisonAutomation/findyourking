@@ -6,28 +6,60 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="flex-1 w-full flex flex-col gap-20 items-center">
-      <div className="flex-1 flex flex-col gap-20 max-w-5xl p-5">
-        <Hero />
-        <div className="flex-1 flex flex-col gap-6 px-4">
-          <h2 className="font-medium text-xl mb-4">Next steps</h2>
-          <SignUpUserSteps />
-        </div>
+    <div className="flex-1 w-full flex flex-col">
+      <div className="flex-1 w-full">
+        {/* Hero Section */}
+        <section className="w-full border-b border-border/40 bg-gradient-to-b from-background to-muted/20">
+          <div className="container mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+            <Hero />
+          </div>
+        </section>
+
+        {/* Getting Started Section */}
+        <section className="w-full py-16 sm:py-20">
+          <div className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-8">
+              <div className="space-y-2">
+                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                  Get Started
+                </h2>
+                <p className="text-lg text-muted-foreground">
+                  Follow these steps to start using FindYourKing
+                </p>
+              </div>
+              <SignUpUserSteps />
+            </div>
+          </div>
+        </section>
       </div>
 
-      <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
-        <p>
-          Powered by{" "}
-          <a
-            href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
-            target="_blank"
-            className="font-bold hover:underline"
-            rel="noreferrer"
-          >
-            Supabase
-          </a>
-        </p>
-        <ThemeSwitcher />
+      {/* Footer */}
+      <footer className="w-full border-t border-border/40 bg-muted/20">
+        <div className="container mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} FindYourKing. Built with{" "}
+              <a
+                href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
+                target="_blank"
+                className="font-semibold underline-offset-4 hover:underline hover:text-foreground transition-colors"
+                rel="noreferrer"
+              >
+                Supabase
+              </a>
+              {" "}and{" "}
+              <a
+                href="https://nextjs.org/"
+                target="_blank"
+                className="font-semibold underline-offset-4 hover:underline hover:text-foreground transition-colors"
+                rel="noreferrer"
+              >
+                Next.js
+              </a>
+            </p>
+            <ThemeSwitcher />
+          </div>
+        </div>
       </footer>
     </div>
   );

@@ -9,7 +9,7 @@ export async function signIn(formData: FormData) {
   const parsed = signInSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!parsed.success) {
-    const message = parsed.error.errors.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map(e => e.message).join(", ");
     return redirect(`/auth/login?message=${message}`);
   }
 
@@ -32,7 +32,7 @@ export async function signUp(formData: FormData) {
   const parsed = signUpSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!parsed.success) {
-    const message = parsed.error.errors.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map(e => e.message).join(", ");
     return redirect(`/auth/sign-up?message=${message}`);
   }
 
@@ -65,7 +65,7 @@ export async function forgotPassword(formData: FormData) {
   const parsed = forgotPasswordSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!parsed.success) {
-    const message = parsed.error.errors.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map(e => e.message).join(", ");
     return redirect(`/auth/forgot-password?message=${message}`);
   }
 
@@ -87,7 +87,7 @@ export async function sendMagicLink(formData: FormData) {
   const parsed = sendMagicLinkSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!parsed.success) {
-    const message = parsed.error.errors.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map(e => e.message).join(", ");
     return redirect(`/auth/login?message=${message}`);
   }
 
@@ -113,7 +113,7 @@ export async function updatePassword(formData: FormData) {
   const parsed = updatePasswordSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!parsed.success) {
-    const message = parsed.error.errors.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map(e => e.message).join(", ");
     return redirect(`/auth/update-password?message=${message}`);
   }
 
@@ -133,7 +133,7 @@ export async function updateProfile(formData: FormData) {
   const parsed = updateProfileSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!parsed.success) {
-    const message = parsed.error.errors.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map(e => e.message).join(", ");
     return { error: message };
   }
 
@@ -162,7 +162,7 @@ export async function createBooking(formData: FormData) {
   const parsed = createBookingSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!parsed.success) {
-    const message = parsed.error.errors.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map(e => e.message).join(", ");
     return { error: message };
   }
 
@@ -218,7 +218,7 @@ export async function resendVerificationEmail(formData: FormData) {
   const parsed = sendMagicLinkSchema.safeParse(Object.fromEntries(formData.entries())); // Re-using sendMagicLinkSchema as it only needs email
 
   if (!parsed.success) {
-    const message = parsed.error.errors.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map(e => e.message).join(", ");
     return { error: message };
   }
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { AuthUser } from "@/types/database";
 import {
   Popover,
   PopoverContent,
@@ -9,6 +10,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { BellIcon } from "lucide-react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 interface Notification {
   id: string;
@@ -18,10 +20,23 @@ interface Notification {
   created_at: string;
 }
 
+/**
+ * Notifications Component - Supabase Realtime Best Practices
+ * 
+ * ✅ Uses broadcast (scalable) instead of postgres_changes
+ * ✅ Private channel with RLS authorization
+ * ✅ Dedicated topic pattern: user:{userId}:notifications
+ * ✅ Proper channel state checking
+ * ✅ Cleanup logic with useRef
+ * ✅ Authentication before subscribe
+ * 
+ * Per: Supabase Realtime AI Assistant Guide
+ */
 export function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const supabase = createClient();
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Fetch initial user
   useEffect(() => {
@@ -32,63 +47,87 @@ export function Notifications() {
       setUser(user);
     };
     getUser();
-  }, []);
+  }, [supabase.auth]);
 
   // Fetch initial notifications and set up real-time subscription
   useEffect(() => {
-    if (user) {
-      const fetchAndSubscribeNotifications = async () => {
-        // Fetch initial notifications
-        const { data: initialNotifications, error } = await supabase
-          .from("notifications")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
+    if (!user) return;
 
-        if (error) {
-          console.error("Error fetching initial notifications:", error);
-        } else {
-          setNotifications(initialNotifications || []);
-        }
+    const fetchAndSubscribeNotifications = async () => {
+      // Fetch initial notifications
+      const { data: initialNotifications, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
-        // Set up real-time subscription
-        const channel = supabase
-          .channel(`notifications_for_user_${user.id}`)
-          .on(
-            "postgres_changes",
-            {
-              event: "*", // Listen to INSERT, UPDATE, DELETE
-              schema: "public",
-              table: "notifications",
-              filter: `user_id=eq.${user.id}`,
-            },
-            (payload) => {
-              if (payload.eventType === "INSERT") {
-                setNotifications((prev) => [payload.new as Notification, ...prev]);
-              } else if (payload.eventType === "UPDATE") {
-                setNotifications((prev) =>
-                  prev.map((n) =>
-                    n.id === (payload.new as Notification).id
-                      ? (payload.new as Notification)
-                      : n
-                  )
-                );
-              } else if (payload.eventType === "DELETE") {
-                setNotifications((prev) =>
-                  prev.filter((n) => n.id !== (payload.old as Notification).id)
-                );
-              }
-            }
-          )
-          .subscribe();
+      if (error) {
+        console.error("Error fetching initial notifications:", error);
+      } else {
+        setNotifications(initialNotifications || []);
+      }
 
-        return () => {
-          supabase.removeChannel(channel);
-        };
-      };
+      // Check if already subscribed to prevent multiple subscriptions
+      if (channelRef.current && channelRef.current.state === 'joined') {
+        return;
+      }
 
-      fetchAndSubscribeNotifications();
-    }
+      // Create channel with proper naming: user:{userId}:notifications
+      const channel = supabase.channel(`user:${user.id}:notifications`, {
+        config: {
+          broadcast: { self: true, ack: true },
+          private: true, // Required for RLS authorization
+        },
+      });
+
+      channelRef.current = channel;
+
+      // Set auth before subscribing (required for private channels)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        await supabase.realtime.setAuth(session.access_token);
+      }
+
+      // Subscribe to broadcast events (NOT postgres_changes)
+      channel
+        .on('broadcast', { event: 'INSERT' }, (payload) => {
+          const newNotification = payload['payload']['record'] as Notification;
+          setNotifications((prev) => [newNotification, ...prev]);
+        })
+        .on('broadcast', { event: 'UPDATE' }, (payload) => {
+          const updatedNotification = payload['payload']['record'] as Notification;
+          setNotifications((prev) =>
+            prev.map((n) =>
+              n.id === updatedNotification.id ? updatedNotification : n
+            )
+          );
+        })
+        .on('broadcast', { event: 'DELETE' }, (payload) => {
+          const deletedNotification = payload['payload']['old_record'] as Notification;
+          setNotifications((prev) =>
+            prev.filter((n) => n.id !== deletedNotification.id)
+          );
+        })
+        .subscribe((status, err) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ Notifications realtime connected');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('❌ Notifications channel error:', err);
+          } else if (status === 'CLOSED') {
+            console.log('🔌 Notifications channel closed');
+          }
+        });
+    };
+
+    fetchAndSubscribeNotifications();
+
+    // Cleanup function
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
   }, [user, supabase]); // Re-run effect if user or supabase client changes
 
   const handleMarkAsRead = async (notificationId: string) => {

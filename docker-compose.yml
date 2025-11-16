@@ -1,0 +1,81 @@
+# ==========================================
+# DOCKER COMPOSE - ZENITH LOCAL DEVELOPMENT
+# Full-stack development environment
+# ==========================================
+
+version: '3.9'
+
+services:
+  # ==========================================
+  # Next.js Application
+  # ==========================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+      args:
+        - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+    container_name: findyourking-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./.env.local:/app/.env.local:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - findyourking-network
+    labels:
+      - "com.findyourking.service=app"
+      - "com.findyourking.environment=local"
+
+  # ==========================================
+  # Redis (Optional - for caching/sessions)
+  # ==========================================
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: findyourking-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis-data:/data
+  #   command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-supersecret}
+  #   restart: unless-stopped
+  #   networks:
+  #     - findyourking-network
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+# ==========================================
+# Networks
+# ==========================================
+networks:
+  findyourking-network:
+    driver: bridge
+    name: findyourking-network
+
+# ==========================================
+# Volumes
+# ==========================================
+volumes:
+  redis-data:
+    driver: local
+

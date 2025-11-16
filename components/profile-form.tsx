@@ -15,6 +15,7 @@ import { useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { updateProfile } from "@/app/actions";
 import { updateProfileSchema } from "@/lib/validation"; // Import the schema
+import { Alert, AlertDescription } from "@/components/ui/alert"; // Import Alert and AlertDescription
 
 interface ProfileFormProps extends React.ComponentPropsWithoutRef<"div"> {
   user: User;
@@ -47,7 +48,7 @@ export function ProfileForm({ className, user, profile, ...props }: ProfileFormP
     // Client-side validation
     const parsed = updateProfileSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) {
-      const message = parsed.error.errors.map(e => e.message).join(", ");
+      const message = parsed.error.issues.map(e => e.message).join(", ");
       setError(message);
       setIsLoading(false);
       return;
@@ -125,8 +126,16 @@ export function ProfileForm({ className, user, profile, ...props }: ProfileFormP
                   disabled={isLoading}
                 />
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              {success && <p className="text-sm text-green-500">{success}</p>}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              {success && (
+                <Alert variant="success"> {/* Assuming a 'success' variant exists or can be added */}
+                  <AlertDescription>{success}</AlertDescription>
+                </Alert>
+              )}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Saving..." : "Update Profile"}
               </Button>

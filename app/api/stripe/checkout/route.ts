@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Stripe } from "stripe";
-import { stripeCheckoutSchema } from "@/lib/validation"; // Import the new schema
+import { stripeCheckoutSchema } from "@/lib/validation";
+import { StripeError } from "@/types/database";
 
 const stripe = new Stripe(process.env['STRIPE_SECRET_KEY']!, {
   apiVersion: "2025-10-29.clover",
@@ -12,7 +13,7 @@ export async function POST(req: Request) {
   const parsed = stripeCheckoutSchema.safeParse(body);
 
   if (!parsed.success) {
-    const message = parsed.error.errors.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map(e => e.message).join(", ");
     return new Response(JSON.stringify({ error: message }), {
       status: 400,
       headers: {
@@ -99,9 +100,10 @@ export async function POST(req: Request) {
         'Content-Type': 'application/json',
       },
     });
-  } catch (stripeError: any) {
+  } catch (err) {
+    const stripeError = err as StripeError;
     console.error('Error creating Stripe checkout session:', stripeError);
-    return new Response(JSON.stringify({ error: stripeError.message || 'Internal Server Error' }), {
+    return new Response(JSON.stringify({ error: 'Payment processing error' }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',

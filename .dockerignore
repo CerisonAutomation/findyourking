@@ -1,0 +1,84 @@
+# ==========================================
+# DOCKERIGNORE - ZENITH OPTIMIZATION
+# Minimize image size and build time
+# ==========================================
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__
+__mocks__
+.jest
+
+# Next.js
+.next/
+out/
+build
+dist
+
+# Production
+.vercel
+.netlify
+
+# Misc
+.DS_Store
+*.pem
+.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+
+# Local env files
+.env
+.env.*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+.circleci
+
+# Documentation
+*.md
+!README.md
+docs/
+AUDIT_REPORT.md
+ISSUES_SUMMARY.md
+FIXES_APPLIED.md
+DEPLOYMENT_READY.md
+AWWWARDS_EXCELLENCE_STATUS.md
+TEST_CHECKLIST.md
+
+# Temporary files
+*.log
+tmp/
+temp/
+

@@ -1,0 +1,59 @@
+# ==========================================
+# DEPENDABOT CONFIGURATION
+# Automated dependency updates
+# ==========================================
+
+version: 2
+updates:
+  # NPM dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "cerisonbrown"
+    assignees:
+      - "cerisonbrown"
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "automated"
+    ignore:
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "cerisonbrown"
+    labels:
+      - "ci/cd"
+      - "automated"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+
+  # Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "cerisonbrown"
+    labels:
+      - "docker"
+      - "automated"
+    commit-message:
+      prefix: "build"
+      include: "scope"
+

@@ -2,14 +2,15 @@ import { streamText } from 'ai';
 import { createGateway } from '@ai-sdk/gateway';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { withRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const runtime = 'edge';
 
 const gateway = createGateway({
-  apiKey: process.env.AI_GATEWAY_API_KEY,
+  apiKey: process.env['AI_GATEWAY_API_KEY'],
   baseURL: 'https://ai-gateway.vercel.sh/v1', // Explicitly use Vercel AI Gateway base URL
   headers: {
-    'http-referer': process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000',
+    'http-referer': process.env['VERCEL_URL'] ? `https://${process.env['VERCEL_URL']}` : 'http://localhost:3000',
     'x-title': 'FindYourKing AI Matchmaker API',
   },
 });
@@ -23,12 +24,12 @@ const matchmakerRequestSchema = z.object({
   targetUserId: z.string().uuid("Invalid Target User ID"), // The user to match with
 });
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const body = await req.json();
   const parsed = matchmakerRequestSchema.safeParse(body);
 
   if (!parsed.success) {
-    const message = parsed.error.errors.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map(e => e.message).join(", ");
     return new NextResponse(JSON.stringify({ error: message }), {
       status: 400,
       headers: {
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
       messages: [{ role: 'system', content: systemMessage }, ...messages],
     });
 
-    return result.toResponse();
+    return result.toTextStreamResponse();
   } catch (err) {
     const error = err as Error;
     console.error('Error in AI Matchmaker:', error);
@@ -66,3 +67,6 @@ export async function POST(req: Request) {
     });
   }
 }
+
+// Export with rate limiting
+export const POST = withRateLimit(handlePOST, RATE_LIMITS.AI);

@@ -3,24 +3,25 @@ import { createGateway } from '@ai-sdk/gateway';
 import { NextResponse } from 'next/server';
 import { chatRequestSchema } from '@/lib/validation';
 import { ChatMessage } from '@/types/database';
+import { withRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const runtime = 'edge';
 
 const gateway = createGateway({
-  apiKey: process.env.AI_GATEWAY_API_KEY,
+  apiKey: process.env['AI_GATEWAY_API_KEY'],
   baseURL: 'https://ai-gateway.vercel.sh/v1', // Explicitly use Vercel AI Gateway base URL
   headers: {
-    'http-referer': process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000',
+    'http-referer': process.env['VERCEL_URL'] ? `https://${process.env['VERCEL_URL']}` : 'http://localhost:3000',
     'x-title': 'FindYourKing Chat API',
   },
 });
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const body = await req.json();
   const parsed = chatRequestSchema.safeParse(body);
 
   if (!parsed.success) {
-    const message = parsed.error.errors.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map(e => e.message).join(", ");
     return new NextResponse(message, { status: 400 });
   }
 
@@ -34,10 +35,13 @@ export async function POST(req: Request) {
       messages: messages as ChatMessage[],
     });
 
-    return result.toResponse(); // Return the streaming response
+    return result.toTextStreamResponse(); // Return the streaming response
   } catch (err) {
     const error = err as Error;
     console.error('Error generating text:', error);
     return new NextResponse('AI service temporarily unavailable', { status: 500 });
   }
 }
+
+// Export with rate limiting
+export const POST = withRateLimit(handlePOST, RATE_LIMITS.CHAT);

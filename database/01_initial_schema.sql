@@ -14,13 +14,16 @@ CREATE TABLE profiles (
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Public profiles are viewable by everyone." ON profiles
-  FOR SELECT USING (TRUE) WITH CHECK (username, avatar_url, full_name, bio);
+  FOR SELECT USING (TRUE);
 
 CREATE POLICY "Users can insert their own profile." ON profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
 
 CREATE POLICY "Users can update their own profile." ON profiles
   FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Users can delete their own profile." ON profiles
+  FOR DELETE USING (auth.uid() = id);
 
 -- Create the kings table
 CREATE TABLE kings (
@@ -45,6 +48,9 @@ CREATE POLICY "Kings can insert their own details." ON kings
 
 CREATE POLICY "Kings can update their own details." ON kings
   FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Kings can delete their own details." ON kings
+  FOR DELETE USING (auth.uid() = id);
 
 -- Create the bookings table
 CREATE TABLE bookings (
@@ -73,6 +79,9 @@ CREATE POLICY "Users can update their own bookings." ON bookings
 
 CREATE POLICY "Kings can update bookings they are part of." ON bookings
   FOR UPDATE USING (auth.uid() = (SELECT id FROM kings WHERE id = king_id));
+
+CREATE POLICY "Users can delete their own bookings." ON bookings
+  FOR DELETE USING (auth.uid() = user_id);
 
 -- Create a function to create a profile for new users
 CREATE FUNCTION public.handle_new_user()
