@@ -4,7 +4,7 @@
 # ==========================================
 
 # Stage 1: Dependencies (Cache layer)
-FROM node:20-alpine AS deps
+FROM node:25-alpine AS deps
 WORKDIR /app
 
 # Install pnpm
@@ -18,7 +18,7 @@ RUN pnpm install --frozen-lockfile --prod=false
 
 # ==========================================
 # Stage 2: Builder (Compile application)
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 WORKDIR /app
 
 # Install pnpm
@@ -42,7 +42,7 @@ RUN pnpm build
 
 # ==========================================
 # Stage 3: Runner (Minimal runtime)
-FROM node:20-alpine AS runner
+FROM node:25-alpine AS runner
 WORKDIR /app
 
 # Security: Run as non-root user
