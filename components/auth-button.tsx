@@ -5,12 +5,13 @@ import { Button } from "./ui/button";
 import { createBrowserClient } from "@supabase/ssr";
 import { LogoutButton } from "./logout-button";
 import { useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 
 export function AuthButton() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env['NEXT_PUBLIC_SUPABASE_URL']!,
+    process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']!
   );
 
   useEffect(() => {

@@ -17,15 +17,15 @@ describe('Rate Limiting', () => {
     jest.useRealTimers();
   });
 
-  it('allows requests within limit', () => {
-    const result1 = checkRateLimit(identifier, {
+  it('allows requests within limit', async () => {
+    const result1 = await checkRateLimit(identifier, {
       maxRequests: 3,
       windowMs: 60000,
     });
     expect(result1.allowed).toBe(true);
     expect(result1.remaining).toBe(2);
 
-    const result2 = checkRateLimit(identifier, {
+    const result2 = await checkRateLimit(identifier, {
       maxRequests: 3,
       windowMs: 60000,
     });
