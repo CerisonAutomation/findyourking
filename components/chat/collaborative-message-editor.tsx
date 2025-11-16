@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import * => Y from 'yjs';
+import * as Y from 'yjs';
 import 'quill/dist/quill.bubble.css'; // Using bubble theme without toolbar
 import { Button } from '@/components/ui/button';
 

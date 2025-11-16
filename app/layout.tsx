@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
-import { LayoutClient } from "./layout-client";
+import LayoutClient from "./layout-client";
 
 const defaultUrl = process.env['VERCEL_URL']
   ? `https://${process.env['VERCEL_URL']}`

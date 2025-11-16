@@ -1,27 +1,38 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
+import { createBrowserClient } from "@supabase/ssr";
 import { Notifications } from "@/components/notifications";
 import { LoadingBar } from "@/components/loading-bar";
 import { SmoothScroll } from "@/components/smooth-scroll";
 import { PageTransition } from "@/components/page-transition";
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { LogoutButton } from "@/components/auth-button";
+import { AuthButton } from "@/components/auth-button";
 
-export function LayoutClient({ children }: { children: React.ReactNode }) {
+export default function LayoutClient({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
+
 
   return (
     <>
@@ -61,26 +72,7 @@ export function LayoutClient({ children }: { children: React.ReactNode }) {
             )}
           </div>
           <div className="flex items-center gap-2">
-            {user && (
-              <>
-                <a 
-                  href="/account/profile"
-                  className="px-3 py-2 text-sm font-medium transition-colors rounded-md hover:bg-accent hover:text-accent-foreground"
-                >
-                  Profile
-                </a>
-                <Notifications />
-                <LogoutButton />
-              </>
-            )}
-            {!user && (
-              <a 
-                href="/auth/login"
-                className="px-4 py-2 text-sm font-medium transition-colors rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                Login
-              </a>
-            )}
+            <AuthButton />
           </div>
         </div>
       </nav>
@@ -93,4 +85,3 @@ export function LayoutClient({ children }: { children: React.ReactNode }) {
     </>
   );
 }
-
