@@ -11,7 +11,7 @@ export interface Profile {
   avatar_url: string | null;
   full_name: string | null;
   bio: string | null;
-  is_boyfriend: boolean;
+  is_king: boolean;
   created_at: string;
   updated_at: string;
 }

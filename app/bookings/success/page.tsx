@@ -12,9 +12,9 @@ export default function BookingSuccessPage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <p>Your booking request has been successfully submitted.</p>
-            <p>You will receive a confirmation once the boyfriend accepts your request.</p>
-            <Link href="/boyfriends">
-              <Button className="w-full">Browse More Boyfriends</Button>
+            <p>You will receive a confirmation once the king accepts your request.</p>
+            <Link href="/kings">
+              <Button className="w-full">Browse More kings</Button>
             </Link>
             <Link href="/account/profile">
               <Button variant="outline" className="w-full mt-2">View Your Profile</Button>

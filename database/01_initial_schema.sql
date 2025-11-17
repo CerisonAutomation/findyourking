@@ -5,7 +5,7 @@ CREATE TABLE profiles (
   avatar_url text,
   full_name text,
   bio text,
-  is_boyfriend boolean DEFAULT FALSE,
+  is_king boolean DEFAULT FALSE,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
