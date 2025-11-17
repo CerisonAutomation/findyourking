@@ -76,7 +76,69 @@
   *:focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
-  }
+
+
+1/1
+
+Next.js 16.0.3
+Turbopack
+Console Error
+Server
+
+
+Error fetching kings: {}
+app/kings/page.tsx (24:13) @ KingsPage
+
+
+  22 |
+  23 |   if (error) {
+> 24 |     console.error("Error fetching kings:", error);
+     |             ^
+  25 |     return <p>Error loading kings.</p>;
+  26 |   }
+  27 |
+Call Stack
+11
+
+Show 9 ignore-listed frame(s)
+KingsPage
+app/kings/page.tsx (24:13)
+KingsPage
+<anonymous>
+1
+2
+Was this helpful?
+
+1/1
+
+Next.js 16.0.3
+Turbopack
+Console Error
+Server
+
+
+Error fetching kings: {}
+app/kings/page.tsx (24:13) @ KingsPage
+
+
+  22 |
+  23 |   if (error) {
+> 24 |     console.error("Error fetching kings:", error);
+     |             ^
+  25 |     return <p>Error loading kings.</p>;
+  26 |   }
+  27 |
+Call Stack
+11
+
+Show 9 ignore-listed frame(s)
+KingsPage
+app/kings/page.tsx (24:13)
+KingsPage
+<anonymous>
+1
+2
+Was this helpful?  }
 }
 
 @layer components {
