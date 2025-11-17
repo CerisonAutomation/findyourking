@@ -9,7 +9,10 @@
  */
 
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getSecurityHeaders } from "@/lib/api-security";
+import { getRequestId } from "@/lib/api-error-handler";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +32,8 @@ export const dynamic = "force-dynamic";
  *   - version: Application version
  *   - environment: 'development' | 'production'
  */
-export async function GET() {
+export async function GET(request?: NextRequest) {
+  const requestId = request ? getRequestId(request) : `health-check-${Date.now()}`;
   const startTime = Date.now();
 
   try {
@@ -66,6 +70,7 @@ export async function GET() {
         headers: {
           "Cache-Control": "no-cache, no-store, must-revalidate",
           "Content-Type": "application/json",
+          ...getSecurityHeaders(),
         },
       }
     );
@@ -83,6 +88,7 @@ export async function GET() {
         headers: {
           "Cache-Control": "no-cache, no-store, must-revalidate",
           "Content-Type": "application/json",
+          ...getSecurityHeaders(),
         },
       }
     );
