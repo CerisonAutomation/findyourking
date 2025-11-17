@@ -1,9 +1,12 @@
 /* Import system fonts for better performance */
 @import url('https://rsms.me/inter/inter.css');
 
+/* stylelint-disable at-rule-no-unknown */
+/* Tailwind directives are processed by PostCSS/Tailwind; disable the linter for these at-rules */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* stylelint-enable at-rule-no-unknown */
 
 @layer base {
   html {
