@@ -17,7 +17,7 @@ const client = createClient<paths>({
 })
 
 // Function to get database schema
-async function getDbSchema(projectRef: string) {
+async function getDbSchema(projectRef: string): Promise<TableSchema[] | null> {
   const token = process.env['SUPABASE_MANAGEMENT_API_TOKEN']
   if (!token) {
     throw new Error('Supabase Management API token is not configured.')
@@ -44,11 +44,21 @@ async function getDbSchema(projectRef: string) {
   return data as any
 }
 
-function formatSchemaForPrompt(schema: any) {
+interface TableColumn {
+  name: string
+  data_type: string
+}
+
+interface TableSchema {
+  name: string
+  columns: TableColumn[]
+}
+
+function formatSchemaForPrompt(schema: unknown): string {
   let schemaString = ''
   if (schema && Array.isArray(schema)) {
-    schema.forEach((table: any) => {
-      const columnInfo = table.columns.map((c: any) => `${c.name} (${c.data_type})`)
+    (schema as TableSchema[]).forEach((table) => {
+      const columnInfo = table.columns.map((c) => `${c.name} (${c.data_type})`)
       schemaString += `Table "${table.name}" has columns: ${columnInfo.join(', ')}.\n`
     })
   }
@@ -111,10 +121,9 @@ export async function POST(request: Request) {
 
     // 4. Return the generated SQL
     return NextResponse.json({ sql })
-  } catch (error: any) {
-    console.error('AI SQL generation error:', error)
-    const errorMessage = error.message || 'An unexpected error occurred.'
-    const status = error.response?.status || 500
-    return NextResponse.json({ message: errorMessage }, { status })
+  } catch (error: unknown) {
+    console.error('Error generating SQL:', error)
+    const message = error instanceof Error ? error.message : 'Failed to generate SQL.'
+    return NextResponse.json({ message }, { status: 500 })
   }
 }

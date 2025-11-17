@@ -100,9 +100,12 @@ export async function POST(req: Request) {
         'Content-Type': 'application/json',
       },
     });
-  } catch (err) {
-    const stripeError = err as StripeError;
-    console.error('Error creating Stripe checkout session:', stripeError);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      console.error('Error creating Stripe checkout session:', err.message);
+    } else {
+      console.error('Unknown error creating Stripe checkout session:', err);
+    }
     return new Response(JSON.stringify({ error: 'Payment processing error' }), {
       status: 500,
       headers: {

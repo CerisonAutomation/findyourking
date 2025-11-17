@@ -172,10 +172,10 @@ export function getIdentifier(request: Request): string {
  * Middleware wrapper for rate limiting
  */
 export function withRateLimit(
-  handler: (request: Request, ...args: any[]) => Promise<Response>,
+  handler: (request: Request, ...args: unknown[]) => Promise<Response>,
   config: RateLimitConfig = RATE_LIMITS.API
-) {
-  return async (request: Request, ...args: any[]): Promise<Response> => {
+): (request: Request, ...args: unknown[]) => Promise<Response> {
+  return async (request: Request, ...args: unknown[]): Promise<Response> => {
     const identifier = getIdentifier(request)
     const { allowed, headers } = await checkRateLimit(identifier, config) // Await checkRateLimit
     

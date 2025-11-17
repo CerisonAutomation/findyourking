@@ -56,9 +56,9 @@ async function handlePOST(req: Request) {
     });
 
     return result.toTextStreamResponse();
-  } catch (err) {
-    const error = err as Error;
-    console.error('Error in AI Matchmaker:', error);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Error in AI Matchmaker:', message);
     return new NextResponse(JSON.stringify({ error: 'AI service temporarily unavailable' }), {
       status: 500,
       headers: {

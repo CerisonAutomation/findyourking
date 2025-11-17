@@ -145,7 +145,7 @@ export async function GET(request: Request) {
 
       return NextResponse.json(data);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Supabase Management API proxy GET error:', error);
     return NextResponse.json({ message: 'An unexpected error occurred.' }, { status: 500 });
   }
@@ -237,7 +237,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json(data);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Supabase Management API proxy POST error:', error);
     return NextResponse.json({ message: 'An unexpected error occurred.' }, { status: 500 });
   }
@@ -280,7 +280,7 @@ export async function DELETE(request: Request) {
     } else {
       return NextResponse.json({ message: 'Invalid DELETE operation type.' }, { status: 400 });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Supabase Management API proxy DELETE error:', error);
     return NextResponse.json({ message: 'An unexpected error occurred.' }, { status: 500 });
   }
