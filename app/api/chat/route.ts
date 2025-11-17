@@ -1,45 +1,98 @@
-import { streamText } from 'ai';
-import { createGateway } from '@ai-sdk/gateway';
-import { NextResponse } from 'next/server';
-import { chatRequestSchema } from '@/lib/validation';
-import { ChatMessage } from '@/types/database';
-import { withRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { streamText } from 'ai'
+import { createGateway } from '@ai-sdk/gateway'
+import { NextResponse, type NextRequest } from 'next/server'
+import { chatRequestSchema } from '@/lib/validation'
+import type { ChatMessage } from '@/types/database'
+import { withRateLimit, RATE_LIMITS } from '@/lib/rate-limit'
+import {
+  createErrorResponse,
+  logApiError,
+  getRequestId,
+  safeParseJson,
+} from '@/lib/api-error-handler'
+import { getSecurityHeaders } from '@/lib/api-security'
 
-export const runtime = 'edge';
+export const runtime = 'edge'
 
 const gateway = createGateway({
   apiKey: process.env['AI_GATEWAY_API_KEY'],
-  baseURL: 'https://ai-gateway.vercel.sh/v1', // Explicitly use Vercel AI Gateway base URL
+  baseURL: 'https://ai-gateway.vercel.sh/v1',
   headers: {
-    'http-referer': process.env['VERCEL_URL'] ? `https://${process.env['VERCEL_URL']}` : 'http://localhost:3000',
+    'http-referer': process.env['VERCEL_URL']
+      ? `https://${process.env['VERCEL_URL']}`
+      : 'http://localhost:3000',
     'x-title': 'FindYourKing Chat API',
   },
-});
+})
 
-async function handlePOST(req: Request) {
-  const body = await req.json();
-  const parsed = chatRequestSchema.safeParse(body);
-
-  if (!parsed.success) {
-    const message = parsed.error.issues.map(e => e.message).join(", ");
-    return new NextResponse(message, { status: 400 });
-  }
-
-  const { messages, kingId } = parsed.data;
+/**
+ * POST /api/chat
+ * Stream chat messages to AI model
+ * 
+ * Handles real-time chat streaming with AI companion models.
+ * Requires valid authentication and message history.
+ * Returns Server-Sent Events stream for client-side consumption.
+ * 
+ * @param {NextRequest} req - Request object containing:
+ *   - messages: Array<{ role: 'user'|'assistant'|'system', content: string }> - Message history
+ *   - kingId: string (UUID) - King/companion profile ID
+ * 
+ * @returns {Promise<Response>} Either:
+ *   - Streaming response with Content-Type: text/event-stream
+ *   - 400: Invalid request format
+ *   - 401: Authentication required
+ *   - 500: Chat service error
+ * 
+ * @throws {Error} On JSON parsing or AI streaming failure
+ */
+async function handlePOST(req: NextRequest) {
+  const requestId = getRequestId(req)
 
   try {
-    // You can use kingId here to dynamically select a model or inject context
-    // For now, we'll keep the model static but demonstrate passing kingId
+    const parseResult = await safeParseJson<{
+      messages: unknown
+      kingId: string
+    }>(req)
+    if (!parseResult.success) {
+      return createErrorResponse(
+        new Error(parseResult.error),
+        requestId,
+        400,
+        'Invalid request format'
+      )
+    }
+
+    const parsed = chatRequestSchema.safeParse(parseResult.data)
+
+    if (!parsed.success) {
+      const message = parsed.error.issues.map((e) => e.message).join(', ')
+      logApiError('chat', new Error(message), requestId, {
+        validationErrors: parsed.error.issues,
+      })
+      return createErrorResponse(
+        new Error(message),
+        requestId,
+        400,
+        'Validation error'
+      )
+    }
+
+    const { messages, kingId } = parsed.data
+
     const result = await streamText({
       model: gateway('ollama/qwen3-coder:480b'),
       messages: messages as ChatMessage[],
-    });
+    })
 
-    return result.toTextStreamResponse(); // Return the streaming response
-  } catch (err) {
-    const error = err as Error;
-    console.error('Error generating text:', error);
-    return new NextResponse('AI service temporarily unavailable', { status: 500 });
+    return result.toTextStreamResponse()
+  } catch (err: unknown) {
+    logApiError('chat', err, requestId)
+    return createErrorResponse(
+      err instanceof Error ? err : new Error('Unknown error'),
+      requestId,
+      500,
+      'Chat service temporarily unavailable'
+    )
   }
 }
 

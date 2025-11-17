@@ -30,6 +30,22 @@ const matchmakerRequestSchema = z.object({
   targetUserId: z.string().uuid('Invalid Target User ID'), // The user to match with
 });
 
+/**
+ * Handle matchmaking messages via AI
+ * 
+ * Processes conversation history through AI matchmaker model.
+ * Analyzes compatibility and suggests conversation topics.
+ * Returns streaming responses for real-time guidance.
+ * 
+ * @param {Request} req - Request object containing:
+ *   - messages: Array<{ role: 'user'|'assistant'|'system', content: string }>
+ *   - userId: string (UUID) - Requester's user ID
+ *   - targetUserId: string (UUID) - Target match's user ID
+ * 
+ * @returns {Promise<Response>} Streaming matchmaking guidance from AI
+ * 
+ * @throws {Error} On validation or AI service failure
+ */
 async function handlePOST(req: Request) {
   const body = await req.json();
   const parsed = matchmakerRequestSchema.safeParse(body);

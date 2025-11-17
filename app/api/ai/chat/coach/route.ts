@@ -29,6 +29,20 @@ const coachRequestSchema = z.object({
   userId: z.string().uuid('Invalid User ID').optional(), // User ID is optional for general advice
 });
 
+/**
+ * Handle coaching messages via AI
+ * 
+ * Processes user messages through AI coaching model.
+ * Returns streaming responses for real-time chat experience.
+ * 
+ * @param {Request} req - Request object containing:
+ *   - messages: Array<{ role: 'user'|'assistant'|'system', content: string }>
+ *   - userId: string (UUID, optional) - User ID for personalization
+ * 
+ * @returns {Promise<Response>} Streaming text response from AI
+ * 
+ * @throws {Error} On validation or AI service failure
+ */
 async function handlePOST(req: Request) {
   const body = await req.json();
   const parsed = coachRequestSchema.safeParse(body);

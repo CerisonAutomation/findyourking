@@ -70,7 +70,27 @@ function formatSchemaForPrompt(schema: unknown): string {
   return schemaString;
 }
 
-export async function POST(request: Request) {
+/**
+ * POST /api/ai/sql
+ * Generate SQL queries from natural language prompts
+ * 
+ * Uses AI to convert user prompts into executable SQL queries.
+ * Includes database schema context for accurate generation.
+ * Requires authentication and project reference.
+ * 
+ * @param {NextRequest} request - Request object containing:
+ *   - prompt: string - Natural language query description
+ *   - projectRef: string - Supabase project reference
+ * 
+ * @returns {Promise<NextResponse>} Either:
+ *   - 200: { sql: string } - Generated SQL query
+ *   - 400: { message: string } - Validation error
+ *   - 401: { message: string } - Authentication required
+ *   - 500: { message: string } - Generation failed
+ * 
+ * @throws {Error} On schema fetch or AI generation failure
+ */
+export async function POST(request: NextRequest) {
   try {
     const { prompt, projectRef } = await request.json();
 

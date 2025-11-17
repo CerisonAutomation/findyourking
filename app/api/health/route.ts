@@ -13,6 +13,22 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * GET /api/health
+ * Health check endpoint for infrastructure monitoring
+ * 
+ * Returns health status of API and database connectivity
+ * Used by Docker healthcheck, load balancers, and monitoring systems
+ * 
+ * @returns {Promise<NextResponse>} Health status object with:
+ *   - status: 'healthy' | 'degraded' | 'unhealthy'
+ *   - timestamp: ISO 8601 timestamp
+ *   - uptime: Process uptime in seconds
+ *   - responseTime: Request processing time in ms
+ *   - checks: { database: 'ok' | 'degraded', api: 'ok' }
+ *   - version: Application version
+ *   - environment: 'development' | 'production'
+ */
 export async function GET() {
   const startTime = Date.now();
 
