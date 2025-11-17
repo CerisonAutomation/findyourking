@@ -10,6 +10,29 @@ const client = createOpenApiClient<components>({
   },
 });
 
+/**
+ * GET /api/supabase-management
+ * Retrieves Supabase project management data based on query parameters
+ * 
+ * Query Parameters:
+ * @param projectRef {string} - Project reference ID (required)
+ * @param type {string} - Data type: 'logs', 'secrets', 'storage', 'auth', 'suggestions', 'lints', 'advisors'
+ * @param iso_timestamp_start {string} - Start timestamp for logs query (ISO format, optional)
+ * @param iso_timestamp_end {string} - End timestamp for logs query (ISO format, optional)
+ * @param sql {string} - SQL filter for logs query (optional)
+ * 
+ * @returns {Promise<Response>} JSON response with requested data or error
+ * 
+ * Examples:
+ * - GET ?projectRef=abc123&type=logs - Fetch API logs
+ * - GET ?projectRef=abc123&type=secrets - Fetch environment secrets
+ * - GET ?projectRef=abc123&type=storage - Fetch storage bucket info
+ * - GET ?projectRef=abc123&type=advisors - Fetch performance/security advisors
+ * 
+ * @throws 401 if not authenticated
+ * @throws 400 if projectRef is missing
+ * @throws 500 if Supabase API returns error
+ */
 export async function GET(request: Request) {
   const supabase = await createSupabaseServerClient();
   const {
@@ -216,6 +239,31 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * POST /api/supabase-management
+ * Executes management operations on Supabase projects
+ * Operations include: running SQL queries, creating secrets, updating auth config
+ * 
+ * Request Body:
+ * @param projectRef {string} - Project reference ID (required)
+ * @param type {string} - Operation type: 'run-query', 'create-secrets', or default (auth config update)
+ * @param query {string} - SQL query string (required for 'run-query' type)
+ * @param readOnly {boolean} - Whether query is read-only (optional, for 'run-query')
+ * @param secrets {object} - Secrets object (required for 'create-secrets' type)
+ * @param payload {object} - Auth config payload (required for default auth config update)
+ * 
+ * @returns {Promise<Response>} JSON response with operation result or error
+ * 
+ * Operation Examples:
+ * - type: 'run-query' - Execute SQL on project database
+ * - type: 'create-secrets' - Create new environment secrets
+ * - default - Update project auth configuration
+ * 
+ * @throws 401 if not authenticated
+ * @throws 400 if required fields missing or invalid type
+ * @throws 403 for unauthorized operations (admin-only features)
+ * @throws 500 if Supabase API returns error
+ */
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
   const {
@@ -349,6 +397,26 @@ export async function POST(request: Request) {
   }
 }
 
+/**
+ * DELETE /api/supabase-management
+ * Deletes resources from Supabase projects
+ * Primarily used for deleting environment secrets
+ * 
+ * Request Body:
+ * @param projectRef {string} - Project reference ID (required)
+ * @param type {string} - Operation type: 'delete-secrets' (required)
+ * @param secretNames {string[]} - Array of secret names to delete (required for 'delete-secrets')
+ * 
+ * @returns {Promise<Response>} JSON response with deletion result or error
+ * 
+ * Examples:
+ * - type: 'delete-secrets' - Delete specified environment secrets from project
+ * 
+ * @throws 401 if not authenticated
+ * @throws 400 if required fields missing or invalid type
+ * @throws 403 for unauthorized deletion attempts
+ * @throws 500 if Supabase API returns error
+ */
 export async function DELETE(request: Request) {
   const supabase = await createSupabaseServerClient();
   const {

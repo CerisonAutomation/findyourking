@@ -1,6 +1,19 @@
 import { NextResponse } from 'next/server';
 import { createClient as createSupabaseServerClient } from '@/lib/supabase/server'; // Import server client
 
+/**
+ * Forwards HTTP requests to the Supabase Management API
+ * Acts as a secure proxy that validates authentication and authorization
+ * before forwarding requests to Supabase's REST endpoints
+ * 
+ * @param request - The incoming HTTP request
+ * @param method - HTTP method (GET, POST, PUT, DELETE, PATCH, HEAD)
+ * @param params - Route parameters containing the API path segments
+ * @returns NextResponse with proxied API response or error message
+ * @throws Returns 401 if user is not authenticated
+ * @throws Returns 500 if Supabase API token is not configured
+ * @throws Returns 500 if the proxied request fails
+ */
 async function forwardToSupabaseAPI(
   request: Request,
   method: string,
@@ -92,6 +105,15 @@ async function forwardToSupabaseAPI(
   }
 }
 
+/**
+ * GET handler - Retrieves data from Supabase Management API
+ * Requires authenticated user session
+ * 
+ * @param request - The incoming GET request with query parameters
+ * @param params - Route parameters containing path segments (ref, resource, etc)
+ * @returns Proxied GET response with resource data or error
+ * @throws 401 if not authenticated, 500 if proxy fails
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ path: string[] }> },
@@ -100,6 +122,15 @@ export async function GET(
   return forwardToSupabaseAPI(request, 'GET', resolvedParams);
 }
 
+/**
+ * HEAD handler - Checks resource availability without body
+ * Useful for checking if a resource exists before full GET request
+ * 
+ * @param request - The incoming HEAD request
+ * @param params - Route parameters containing path segments
+ * @returns Response headers only, no body
+ * @throws 401 if not authenticated, 500 if proxy fails
+ */
 export async function HEAD(
   request: Request,
   { params }: { params: Promise<{ path: string[] }> },
@@ -108,6 +139,15 @@ export async function HEAD(
   return forwardToSupabaseAPI(request, 'HEAD', resolvedParams);
 }
 
+/**
+ * POST handler - Creates new resources in Supabase Management API
+ * Forwards request body to Supabase, handles authentication/authorization
+ * 
+ * @param request - The incoming POST request with JSON body
+ * @param params - Route parameters containing path segments (ref, resource, etc)
+ * @returns Proxied POST response with created resource or validation error
+ * @throws 401 if not authenticated, 500 if proxy fails
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ path: string[] }> },
@@ -116,6 +156,15 @@ export async function POST(
   return forwardToSupabaseAPI(request, 'POST', resolvedParams);
 }
 
+/**
+ * PUT handler - Replaces entire resources in Supabase Management API
+ * Updates resource by sending complete replacement data
+ * 
+ * @param request - The incoming PUT request with complete JSON body
+ * @param params - Route parameters containing path segments (ref, resource, id)
+ * @returns Proxied PUT response with updated resource or error
+ * @throws 401 if not authenticated, 500 if proxy fails, 404 if resource not found
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ path: string[] }> },
@@ -124,6 +173,15 @@ export async function PUT(
   return forwardToSupabaseAPI(request, 'PUT', resolvedParams);
 }
 
+/**
+ * DELETE handler - Removes resources from Supabase Management API
+ * Permanently deletes the specified resource
+ * 
+ * @param request - The incoming DELETE request
+ * @param params - Route parameters containing path segments (ref, resource, id)
+ * @returns Proxied DELETE response (typically 204 No Content)
+ * @throws 401 if not authenticated, 500 if proxy fails, 404 if resource not found
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ path: string[] }> },
@@ -132,6 +190,15 @@ export async function DELETE(
   return forwardToSupabaseAPI(request, 'DELETE', resolvedParams);
 }
 
+/**
+ * PATCH handler - Partially updates resources in Supabase Management API
+ * Merges provided fields with existing resource data
+ * 
+ * @param request - The incoming PATCH request with partial JSON body
+ * @param params - Route parameters containing path segments (ref, resource, id)
+ * @returns Proxied PATCH response with partially updated resource or error
+ * @throws 401 if not authenticated, 500 if proxy fails, 404 if resource not found
+ */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ path: string[] }> },
