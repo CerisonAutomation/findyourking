@@ -5,6 +5,7 @@ import type { NextRequest } from 'next/server';
 import OpenAI from 'openai';
 import createClient from 'openapi-fetch';
 import { createClient as createSupabaseServerClient } from '@/lib/supabase/server'; // Import server client
+import { getSecurityHeaders } from '@/lib/api-security';
 
 const openai = new OpenAI({
   apiKey: process.env['OPENAI_API_KEY'],
@@ -149,16 +150,18 @@ export async function POST(request: NextRequest) {
     if (!sql) {
       return NextResponse.json(
         { message: 'Could not generate SQL from the prompt.' },
-        { status: 500 },
+        { status: 500, headers: { ...getSecurityHeaders() } },
       );
     }
 
     // 4. Return the generated SQL
-    return NextResponse.json({ sql });
+    return NextResponse.json({ sql }, {
+      headers: { ...getSecurityHeaders() }
+    });
   } catch (error: unknown) {
     console.error('Error generating SQL:', error);
     const message =
       error instanceof Error ? error.message : 'Failed to generate SQL.';
-    return NextResponse.json({ message }, { status: 500 });
+    return NextResponse.json({ message }, { status: 500, headers: { ...getSecurityHeaders() } });
   }
 }

@@ -3,6 +3,7 @@ import { createGateway } from '@ai-sdk/gateway';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { getSecurityHeaders } from '@/lib/api-security';
 
 export const runtime = 'edge';
 
@@ -32,18 +33,18 @@ const matchmakerRequestSchema = z.object({
 
 /**
  * Handle matchmaking messages via AI
- * 
+ *
  * Processes conversation history through AI matchmaker model.
  * Analyzes compatibility and suggests conversation topics.
  * Returns streaming responses for real-time guidance.
- * 
+ *
  * @param {Request} req - Request object containing:
  *   - messages: Array<{ role: 'user'|'assistant'|'system', content: string }>
  *   - userId: string (UUID) - Requester's user ID
  *   - targetUserId: string (UUID) - Target match's user ID
- * 
+ *
  * @returns {Promise<Response>} Streaming matchmaking guidance from AI
- * 
+ *
  * @throws {Error} On validation or AI service failure
  */
 async function handlePOST(req: Request) {
@@ -77,7 +78,11 @@ async function handlePOST(req: Request) {
       messages: [{ role: 'system', content: systemMessage }, ...messages],
     });
 
-    return result.toTextStreamResponse();
+    const response = result.toTextStreamResponse();
+    Object.entries(getSecurityHeaders()).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    return response;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('Error in AI Matchmaker:', message);
@@ -87,6 +92,7 @@ async function handlePOST(req: Request) {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
+          ...getSecurityHeaders(),
         },
       },
     );

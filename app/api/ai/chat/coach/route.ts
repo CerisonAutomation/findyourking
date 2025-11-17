@@ -3,6 +3,7 @@ import { createGateway } from '@ai-sdk/gateway';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { getSecurityHeaders } from '@/lib/api-security';
 
 export const runtime = 'edge';
 
@@ -31,16 +32,16 @@ const coachRequestSchema = z.object({
 
 /**
  * Handle coaching messages via AI
- * 
+ *
  * Processes user messages through AI coaching model.
  * Returns streaming responses for real-time chat experience.
- * 
+ *
  * @param {Request} req - Request object containing:
  *   - messages: Array<{ role: 'user'|'assistant'|'system', content: string }>
  *   - userId: string (UUID, optional) - User ID for personalization
- * 
+ *
  * @returns {Promise<Response>} Streaming text response from AI
- * 
+ *
  * @throws {Error} On validation or AI service failure
  */
 async function handlePOST(req: Request) {
@@ -72,7 +73,11 @@ async function handlePOST(req: Request) {
       messages: [{ role: 'system', content: systemMessage }, ...messages],
     });
 
-    return result.toTextStreamResponse();
+    const response = result.toTextStreamResponse();
+    Object.entries(getSecurityHeaders()).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    return response;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('Error in AI Dating Coach:', message);
@@ -82,6 +87,7 @@ async function handlePOST(req: Request) {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
+          ...getSecurityHeaders(),
         },
       },
     );
