@@ -6,6 +6,19 @@ import { Check } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Checkbox component - Accessible form checkbox input
+ * Built on Radix UI Checkbox primitive with full keyboard support
+ * Shows checkmark when selected, supports disabled and indeterminate states
+ * 
+ * @param props - Radix CheckboxPrimitive.Root props (checked, onCheckedChange, disabled, etc.)
+ * @param ref - Forward ref to underlying checkbox element
+ * @returns React component with styled checkbox
+ * 
+ * @example
+ * const [checked, setChecked] = React.useState(false);
+ * <Checkbox checked={checked} onCheckedChange={setChecked} />
+ */
 const Checkbox = React.forwardRef<
   React.ElementRef<typeof CheckboxPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>

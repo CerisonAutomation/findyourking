@@ -5,6 +5,19 @@ import * as SwitchPrimitives from "@radix-ui/react-switch"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Switch component - Toggle switch for boolean inputs
+ * Built on Radix UI Switch primitive with smooth animations
+ * Provides accessible on/off toggle with animated thumb indicator
+ * 
+ * @param props - Radix SwitchPrimitives.Root props (checked, onCheckedChange, disabled, etc.)
+ * @param ref - Forward ref to underlying switch element
+ * @returns React component with animated toggle switch
+ * 
+ * @example
+ * const [enabled, setEnabled] = React.useState(false);
+ * <Switch checked={enabled} onCheckedChange={setEnabled} />
+ */
 const Switch = React.forwardRef<
   React.ElementRef<typeof SwitchPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>
