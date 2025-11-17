@@ -10,17 +10,23 @@ const gateway = createGateway({
   apiKey: process.env['AI_GATEWAY_API_KEY'],
   baseURL: 'https://ai-gateway.vercel.sh/v1', // Explicitly use Vercel AI Gateway base URL
   headers: {
-    'http-referer': process.env['VERCEL_URL'] ? `https://${process.env['VERCEL_URL']}` : 'http://localhost:3000',
+    'http-referer': process.env['VERCEL_URL']
+      ? `https://${process.env['VERCEL_URL']}`
+      : 'http://localhost:3000',
     'x-title': 'FindYourKing AI Coach API',
   },
 });
 
 const coachRequestSchema = z.object({
-  messages: z.array(z.object({
-    role: z.enum(["user", "assistant", "system"]),
-    content: z.string().min(1, "Message content cannot be empty"),
-  })).min(1, "Messages array cannot be empty"),
-  userId: z.string().uuid("Invalid User ID").optional(), // User ID is optional for general advice
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant', 'system']),
+        content: z.string().min(1, 'Message content cannot be empty'),
+      }),
+    )
+    .min(1, 'Messages array cannot be empty'),
+  userId: z.string().uuid('Invalid User ID').optional(), // User ID is optional for general advice
 });
 
 async function handlePOST(req: Request) {
@@ -28,7 +34,7 @@ async function handlePOST(req: Request) {
   const parsed = coachRequestSchema.safeParse(body);
 
   if (!parsed.success) {
-    const message = parsed.error.issues.map(e => e.message).join(", ");
+    const message = parsed.error.issues.map((e) => e.message).join(', ');
     return new NextResponse(JSON.stringify({ error: message }), {
       status: 400,
       headers: {
@@ -56,12 +62,15 @@ async function handlePOST(req: Request) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('Error in AI Dating Coach:', message);
-    return new NextResponse(JSON.stringify({ error: 'AI service temporarily unavailable' }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
+    return new NextResponse(
+      JSON.stringify({ error: 'AI service temporarily unavailable' }),
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        },
       },
-    });
+    );
   }
 }
 
