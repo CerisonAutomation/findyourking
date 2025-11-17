@@ -5,10 +5,33 @@ import * as HoverCardPrimitive from "@radix-ui/react-hover-card"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * HoverCard component - Information card that appears on hover
+ * Built on Radix UI HoverCard primitive with smooth animations
+ * Shows contextual information when hovering over trigger elements
+ * 
+ * @example
+ * <HoverCard>
+ *   <HoverCardTrigger>Hover me</HoverCardTrigger>
+ *   <HoverCardContent>Additional information</HoverCardContent>
+ * </HoverCard>
+ */
 const HoverCard = HoverCardPrimitive.Root
 
+/**
+ * HoverCardTrigger - Element that triggers hover card display
+ * Typically used with interactive elements like buttons or links
+ */
 const HoverCardTrigger = HoverCardPrimitive.Trigger
 
+/**
+ * HoverCardContent component - Content container for hover card
+ * Portal-rendered with animations and automatic positioning
+ * 
+ * @param props - Radix HoverCardPrimitive.Content props (align, sideOffset, etc.)
+ * @param ref - Forward ref to underlying content element
+ * @returns React component with hover card styling
+ */
 const HoverCardContent = React.forwardRef<
   React.ElementRef<typeof HoverCardPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Content>

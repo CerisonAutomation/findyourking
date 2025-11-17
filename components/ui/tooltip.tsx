@@ -5,12 +5,41 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * TooltipProvider - Context provider for tooltip accessibility
+ * Manages tooltip delay and accessibility features
+ */
 const TooltipProvider = TooltipPrimitive.Provider
 
+/**
+ * Tooltip component - Small contextual information overlay
+ * Built on Radix UI Tooltip primitive with accessibility support
+ * Shows brief information when hovering over elements
+ * 
+ * @example
+ * <TooltipProvider>
+ *   <Tooltip>
+ *     <TooltipTrigger>Hover me</TooltipTrigger>
+ *     <TooltipContent>Tooltip text</TooltipContent>
+ *   </Tooltip>
+ * </TooltipProvider>
+ */
 const Tooltip = TooltipPrimitive.Root
 
+/**
+ * TooltipTrigger - Element that triggers tooltip display
+ * Typically used with interactive elements
+ */
 const TooltipTrigger = TooltipPrimitive.Trigger
 
+/**
+ * TooltipContent component - Content container for tooltip
+ * Portal-rendered with animations and automatic positioning
+ * 
+ * @param props - Radix TooltipPrimitive.Content props (sideOffset, etc.)
+ * @param ref - Forward ref to underlying content element
+ * @returns React component with tooltip styling
+ */
 const TooltipContent = React.forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>

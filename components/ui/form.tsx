@@ -15,6 +15,18 @@ import {
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 
+/**
+ * Form component - React Hook Form provider wrapper
+ * Provides form context to all child form components
+ * Integrates with Radix UI for accessible form controls
+ * 
+ * @example
+ * <Form {...formMethods}>
+ *   <FormField name="email">
+ *     <FormItem><FormLabel>Email</FormLabel><FormControl><Input /></FormControl></FormItem>
+ *   </FormField>
+ * </Form>
+ */
 const Form = FormProvider
 
 type FormFieldContextValue<
@@ -26,6 +38,13 @@ type FormFieldContextValue<
 
 const FormFieldContext = React.createContext<FormFieldContextValue | null>(null)
 
+/**
+ * FormField component - Wrapper for form field with React Hook Form integration
+ * Provides field context and validation state to child components
+ * 
+ * @param props - React Hook Form Controller props (name, control, rules, etc.)
+ * @returns React component that wraps form field with validation context
+ */
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
@@ -39,6 +58,13 @@ const FormField = <
   )
 }
 
+/**
+ * useFormField hook - Access form field state and metadata
+ * Provides field ID, validation state, and ARIA attributes
+ * 
+ * @returns Object containing field state, IDs, and validation information
+ * @throws Error if used outside FormField and FormItem context
+ */
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext)
   const itemContext = React.useContext(FormItemContext)
@@ -72,6 +98,14 @@ type FormItemContextValue = {
 
 const FormItemContext = React.createContext<FormItemContextValue | null>(null)
 
+/**
+ * FormItem component - Container for form field elements
+ * Provides spacing and layout for label, control, description, and message
+ * 
+ * @param props - Standard HTML div attributes
+ * @param ref - Forward ref to underlying div element
+ * @returns React component styled as form item container
+ */
 const FormItem = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -86,6 +120,15 @@ const FormItem = React.forwardRef<
 })
 FormItem.displayName = "FormItem"
 
+/**
+ * FormLabel component - Accessible label for form fields
+ * Integrates with React Hook Form validation state
+ * Shows error styling when field has validation errors
+ * 
+ * @param props - Radix LabelPrimitive.Root props
+ * @param ref - Forward ref to underlying label element
+ * @returns React component with form label styling
+ */
 const FormLabel = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
@@ -103,6 +146,15 @@ const FormLabel = React.forwardRef<
 })
 FormLabel.displayName = "FormLabel"
 
+/**
+ * FormControl component - Wrapper for form input controls
+ * Provides ARIA attributes and integrates with validation state
+ * Uses Radix Slot for flexible composition
+ * 
+ * @param props - Radix Slot props
+ * @param ref - Forward ref to underlying control element
+ * @returns React component with form control functionality
+ */
 const FormControl = React.forwardRef<
   React.ElementRef<typeof Slot>,
   React.ComponentPropsWithoutRef<typeof Slot>
@@ -125,6 +177,14 @@ const FormControl = React.forwardRef<
 })
 FormControl.displayName = "FormControl"
 
+/**
+ * FormDescription component - Helper text for form fields
+ * Provides additional context or instructions for form inputs
+ * 
+ * @param props - Standard HTML paragraph attributes
+ * @param ref - Forward ref to underlying paragraph element
+ * @returns React component with form description styling
+ */
 const FormDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
@@ -142,6 +202,14 @@ const FormDescription = React.forwardRef<
 })
 FormDescription.displayName = "FormDescription"
 
+/**
+ * FormMessage component - Validation error message display
+ * Shows error messages from React Hook Form validation
+ * 
+ * @param props - Standard HTML paragraph attributes
+ * @param ref - Forward ref to underlying paragraph element
+ * @returns React component with error message styling
+ */
 const FormMessage = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>

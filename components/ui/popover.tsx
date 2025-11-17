@@ -5,12 +5,39 @@ import * as PopoverPrimitive from "@radix-ui/react-popover"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Popover component - Floating container that appears on trigger
+ * Built on Radix UI Popover primitive with portal rendering
+ * Used for tooltips, menus, and contextual information
+ * 
+ * @example
+ * <Popover>
+ *   <PopoverTrigger>Open Popover</PopoverTrigger>
+ *   <PopoverContent>Popover content</PopoverContent>
+ * </Popover>
+ */
 const Popover = PopoverPrimitive.Root
 
+/**
+ * PopoverTrigger - Element that opens the popover
+ * Typically used with buttons or interactive elements
+ */
 const PopoverTrigger = PopoverPrimitive.Trigger
 
+/**
+ * PopoverAnchor - Anchor element for popover positioning
+ * Used to position popover relative to specific element
+ */
 const PopoverAnchor = PopoverPrimitive.Anchor
 
+/**
+ * PopoverContent component - Content container for popover
+ * Portal-rendered with animations and automatic positioning
+ * 
+ * @param props - Radix PopoverPrimitive.Content props (align, sideOffset, etc.)
+ * @param ref - Forward ref to underlying content element
+ * @returns React component with popover styling
+ */
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
