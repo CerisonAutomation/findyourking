@@ -13,7 +13,10 @@ const client = createOpenApiClient<components>({
 
 // Helper to add security headers to response
 function withSecurityHeaders(options?: any) {
-  return { ...options, headers: { ...getSecurityHeaders(), ...(options?.headers || {}) } };
+  return {
+    ...options,
+    headers: { ...getSecurityHeaders(), ...(options?.headers || {}) },
+  };
 }
 
 /**
@@ -46,7 +49,10 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ message: 'Unauthorized' }, withSecurityHeaders({ status: 401 }));
+    return NextResponse.json(
+      { message: 'Unauthorized' },
+      withSecurityHeaders({ status: 401 }),
+    );
   }
 
   const { searchParams } = new URL(request.url);
@@ -277,7 +283,10 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ message: 'Unauthorized' }, withSecurityHeaders({ status: 401 }));
+    return NextResponse.json(
+      { message: 'Unauthorized' },
+      withSecurityHeaders({ status: 401 }),
+    );
   }
 
   const { projectRef, query, readOnly, type, secrets } = await request.json();
@@ -430,7 +439,10 @@ export async function DELETE(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ message: 'Unauthorized' }, withSecurityHeaders({ status: 401 }));
+    return NextResponse.json(
+      { message: 'Unauthorized' },
+      withSecurityHeaders({ status: 401 }),
+    );
   }
 
   const { projectRef, secretNames, type } = await request.json();

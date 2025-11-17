@@ -155,13 +155,19 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Return the generated SQL
-    return NextResponse.json({ sql }, {
-      headers: { ...getSecurityHeaders() }
-    });
+    return NextResponse.json(
+      { sql },
+      {
+        headers: { ...getSecurityHeaders() },
+      },
+    );
   } catch (error: unknown) {
     console.error('Error generating SQL:', error);
     const message =
       error instanceof Error ? error.message : 'Failed to generate SQL.';
-    return NextResponse.json({ message }, { status: 500, headers: { ...getSecurityHeaders() } });
+    return NextResponse.json(
+      { message },
+      { status: 500, headers: { ...getSecurityHeaders() } },
+    );
   }
 }

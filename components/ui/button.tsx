@@ -4,6 +4,12 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Button component variants using CVA (Class Variance Authority)
+ * Provides consistent styling and behavior across all button types
+ * Supports multiple variants: default, destructive, outline, secondary, ghost, link
+ * Supports multiple sizes: default, sm, lg, icon
+ */
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
@@ -34,12 +40,27 @@ const buttonVariants = cva(
   }
 )
 
+/**
+ * ButtonProps extends HTML button attributes with variant and size options
+ * @prop variant - Button style variant (default, destructive, outline, secondary, ghost, link)
+ * @prop size - Button size (default, sm, lg, icon)
+ * @prop asChild - If true, renders as child component instead of button
+ */
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
 }
 
+/**
+ * Button component with multiple style variants and sizes
+ * Supports polymorphic rendering via asChild prop
+ * Fully accessible with focus management and keyboard support
+ * 
+ * @param props - ButtonProps including variant, size, and standard HTML attributes
+ * @param ref - Forward ref to underlying button or child element
+ * @returns React button component with applied styles and behavior
+ */
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"

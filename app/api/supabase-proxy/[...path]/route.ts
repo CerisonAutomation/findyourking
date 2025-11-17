@@ -97,12 +97,18 @@ async function forwardToSupabaseAPI(
     }
 
     // Return the response with the same status
-    return NextResponse.json(responseData, { status: response.status, headers: { ...getSecurityHeaders() } });
+    return NextResponse.json(responseData, {
+      status: response.status,
+      headers: { ...getSecurityHeaders() },
+    });
   } catch (error: unknown) {
     console.error('Supabase API proxy error:', error);
     const errorMessage =
       error instanceof Error ? error.message : 'An unexpected error occurred.';
-    return NextResponse.json({ message: errorMessage }, { status: 500, headers: { ...getSecurityHeaders() } });
+    return NextResponse.json(
+      { message: errorMessage },
+      { status: 500, headers: { ...getSecurityHeaders() } },
+    );
   }
 }
 

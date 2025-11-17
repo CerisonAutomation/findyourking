@@ -23,20 +23,20 @@ const stripe = new Stripe(process.env['STRIPE_SECRET_KEY']!, {
 /**
  * POST /api/stripe/checkout
  * Create a Stripe checkout session for a booking
- * 
+ *
  * Requires authentication and validates booking ID.
  * Creates Stripe session and stores payment intent in database.
- * 
+ *
  * @param {NextRequest} req - Request object containing:
  *   - bookingId: string (UUID) - ID of booking to process
- * 
+ *
  * @returns {Promise<Response>} Either:
  *   - 200: { url: string } - Stripe checkout URL
  *   - 400: { message: string } - Validation error
  *   - 401: { message: string } - Authentication required
  *   - 404: { message: string } - Booking not found
  *   - 500: { message: string } - Payment processing error
- * 
+ *
  * @throws {Error} On Stripe API failure
  */
 export async function POST(req: NextRequest) {
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
+      payment_method_types: ['card'] as const,
       line_items: [
         {
           price_data: {
@@ -162,18 +162,6 @@ export async function POST(req: NextRequest) {
       .from('bookings')
       .update({ stripe_payment_intent_id: session.payment_intent as string })
       .eq('id', booking.id);
-
-    console.log(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        context: 'stripe-checkout',
-        status: 'success',
-        bookingId,
-        sessionId: session.id,
-        requestId,
-        clientIp,
-      }),
-    );
 
     return Response.json(
       { url: session.url },

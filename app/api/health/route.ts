@@ -1,6 +1,6 @@
 /**
  * Health Check Endpoint - Zenith Level
- * 
+ *
  * Used by:
  * - Docker healthcheck
  * - Load balancers
@@ -8,21 +8,21 @@
  * - CI/CD pipelines
  */
 
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { getSecurityHeaders } from "@/lib/api-security";
-import { getRequestId } from "@/lib/api-error-handler";
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { getSecurityHeaders } from '@/lib/api-security';
+import { getRequestId } from '@/lib/api-error-handler';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/health
  * Health check endpoint for infrastructure monitoring
- * 
+ *
  * Returns health status of API and database connectivity
  * Used by Docker healthcheck, load balancers, and monitoring systems
- * 
+ *
  * @returns {Promise<NextResponse>} Health status object with:
  *   - status: 'healthy' | 'degraded' | 'unhealthy'
  *   - timestamp: ISO 8601 timestamp
@@ -33,24 +33,26 @@ export const dynamic = "force-dynamic";
  *   - environment: 'development' | 'production'
  */
 export async function GET(request?: NextRequest) {
-  const requestId = request ? getRequestId(request) : `health-check-${Date.now()}`;
+  const requestId = request
+    ? getRequestId(request)
+    : `health-check-${Date.now()}`;
   const startTime = Date.now();
 
   try {
     // Check database connectivity
     const supabase = await createClient();
     const { error: dbError } = await supabase
-      .from("profiles")
-      .select("id")
+      .from('profiles')
+      .select('id')
       .limit(1)
       .single();
 
-    const dbHealthy = !dbError || dbError.code === "PGRST116"; // PGRST116 = no rows, but connection is OK
+    const dbHealthy = !dbError || dbError.code === 'PGRST116'; // PGRST116 = no rows, but connection is OK
 
     const responseTime = Date.now() - startTime;
 
     // Health status
-    const status = dbHealthy ? "healthy" : "degraded";
+    const status = dbHealthy ? 'healthy' : 'degraded';
 
     return NextResponse.json(
       {
@@ -59,39 +61,36 @@ export async function GET(request?: NextRequest) {
         uptime: process.uptime(),
         responseTime: `${responseTime}ms`,
         checks: {
-          database: dbHealthy ? "ok" : "degraded",
-          api: "ok",
+          database: dbHealthy ? 'ok' : 'degraded',
+          api: 'ok',
         },
-        version: process.env['NEXT_PUBLIC_APP_VERSION'] || "1.0.0",
+        version: process.env['NEXT_PUBLIC_APP_VERSION'] || '1.0.0',
         environment: process.env['NODE_ENV'],
       },
       {
         status: dbHealthy ? 200 : 503,
         headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Content-Type": "application/json",
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Content-Type': 'application/json',
           ...getSecurityHeaders(),
         },
-      }
+      },
     );
   } catch (error) {
-    console.error("Health check failed:", error);
-    
     return NextResponse.json(
       {
-        status: "unhealthy",
+        status: 'unhealthy',
         timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       },
       {
         status: 503,
         headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Content-Type": "application/json",
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Content-Type': 'application/json',
           ...getSecurityHeaders(),
         },
-      }
+      },
     );
   }
 }
-

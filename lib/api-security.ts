@@ -22,7 +22,7 @@ const ALLOWED_ORIGINS = [
 /**
  * Validate CORS origin
  * Checks if the request origin is in the allowed list
- * 
+ *
  * @param request - The incoming HTTP request
  * @returns true if origin is valid or missing (server-to-server), false if not allowed
  */
@@ -36,7 +36,7 @@ export function validateCorsOrigin(request: NextRequest): boolean {
 /**
  * Get CORS headers for response
  * Constructs appropriate CORS headers based on request origin validation
- * 
+ *
  * @param request - The incoming HTTP request
  * @returns Record of CORS header key-value pairs for response
  */
@@ -56,7 +56,7 @@ export function getCorsHeaders(request: NextRequest): Record<string, string> {
 /**
  * Validate CSRF token (if client sends it)
  * Recommends using SameSite cookies as primary CSRF protection
- * 
+ *
  * @param request - The incoming HTTP request
  * @param headerName - Name of the CSRF token header (default: 'x-csrf-token')
  * @returns true if token is valid or protection is skipped safely, false if invalid
@@ -74,7 +74,7 @@ export function validateCsrfToken(
 /**
  * Authenticate request using Supabase session
  * Verifies user is logged in and retrieves user ID
- * 
+ *
  * @param request - The incoming HTTP request
  * @returns Authentication result with userId if authenticated, error message if not
  */
@@ -110,7 +110,7 @@ export async function authenticateRequest(
 /**
  * Sanitize string input to prevent XSS attacks
  * Escapes HTML special characters that could execute scripts
- * 
+ *
  * @param input - User input string to sanitize
  * @returns Sanitized string safe for display in HTML
  */
@@ -128,7 +128,7 @@ export function sanitizeString(input: unknown): string {
 
 /**
  * Validate email format using regex pattern
- * 
+ *
  * @param email - Email address to validate
  * @returns true if valid email format, false otherwise
  */
@@ -141,7 +141,7 @@ export function validateEmail(email: unknown): boolean {
 
 /**
  * Validate UUID v4 format
- * 
+ *
  * @param uuid - UUID string to validate
  * @returns true if valid UUID format, false otherwise
  */
@@ -155,7 +155,7 @@ export function validateUuid(uuid: unknown): boolean {
 
 /**
  * Validate URL format using URL constructor
- * 
+ *
  * @param url - URL string to validate
  * @returns true if valid URL format, false otherwise
  */
@@ -173,7 +173,7 @@ export function validateUrl(url: unknown): boolean {
 /**
  * Rate limit check (requires Redis or Upstash in production)
  * Falls back to in-memory implementation for development
- * 
+ *
  * @param identifier - Unique identifier (user ID, API key, IP address)
  * @param limit - Maximum requests allowed in window (default: 100)
  * @param windowSeconds - Time window in seconds (default: 60)
@@ -201,7 +201,7 @@ export async function checkRateLimitSecurity(
 
 /**
  * Validate request HTTP method against allowed methods
- * 
+ *
  * @param request - The incoming HTTP request
  * @param allowedMethods - Array of HTTP methods to allow (e.g., ['GET', 'POST'])
  * @returns true if request method is allowed, false otherwise
@@ -216,7 +216,7 @@ export function validateMethod(
 /**
  * Extract client IP address from request headers
  * Handles forwarded headers from proxies and load balancers
- * 
+ *
  * @param request - The incoming HTTP request
  * @returns Client IP address or 'unknown' if unable to determine
  */
@@ -238,7 +238,7 @@ export function getClientIp(request: NextRequest): string {
 /**
  * Validate request content type against allowed types
  * Ensures API receives expected data format
- * 
+ *
  * @param request - The incoming HTTP request
  * @param allowedTypes - Array of allowed content types (e.g., ['application/json'])
  * @returns true if content type is allowed, false otherwise
@@ -254,7 +254,7 @@ export function validateContentType(
 /**
  * Get standard security headers for API responses
  * Implements OWASP recommended headers to protect against common attacks
- * 
+ *
  * Headers include:
  * - X-Content-Type-Options: Prevents MIME type sniffing
  * - X-Frame-Options: Protects against clickjacking
@@ -262,7 +262,7 @@ export function validateContentType(
  * - Strict-Transport-Security: Forces HTTPS connections
  * - Content-Security-Policy: Restricts resource loading
  * - Referrer-Policy: Controls referrer information sharing
- * 
+ *
  * @returns Record of security header key-value pairs for response
  */
 export function getSecurityHeaders(): Record<string, string> {

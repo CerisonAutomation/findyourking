@@ -78,5 +78,18 @@
     outline-offset: 2px;
 
 
-}
-}
+1/1
+
+Next.js 16.0.3
+Turbopack
+Console Error
+Server
+
+
+Error fetching kings: {}
+app/kings/page.tsx (24:13) @ KingsPage
+
+
+  22 |
+  23 |   if (error) {
+> 24 |     console.error("Error fetching kings:", error);

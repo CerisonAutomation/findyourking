@@ -43,7 +43,7 @@ export function getRequestId(request: NextRequest): string {
 /**
  * Determine error category from error object
  * Maps error messages to appropriate error categories for consistent handling
- * 
+ *
  * @param error - Unknown error object to categorize
  * @returns ErrorCategory enum value for the error
  */
@@ -87,7 +87,7 @@ export function categorizeError(error: unknown): ErrorCategory {
  * Get user-friendly error message based on error category
  * Maps internal error categories to appropriate user-facing messages
  * Hides sensitive technical details from frontend
- * 
+ *
  * @param category - The error category to get message for
  * @param originalMessage - Optional original error message (typically ignored for security)
  * @returns User-friendly error message
@@ -118,7 +118,7 @@ export function getUserMessage(
 /**
  * Get HTTP status code based on error category
  * Maps error categories to standard HTTP status codes
- * 
+ *
  * @param category - The error category
  * @returns HTTP status code (400, 401, 403, 404, 409, 429, 502, or 500)
  */
@@ -142,7 +142,7 @@ export function getStatusCode(category: ErrorCategory): number {
  * Log API error with context for debugging and monitoring
  * Includes error category, message, stack trace, request ID, and additional context
  * Output as JSON for easy parsing by log aggregators (Sentry, LogRocket, DataDog)
- * 
+ *
  * @param context - Description of where error occurred (e.g., 'route-name:handler')
  * @param error - The error object to log
  * @param requestId - Request ID for tracing this error
@@ -175,7 +175,7 @@ export function logApiError(
 /**
  * Create standardized error response for API endpoints
  * Wraps error in consistent response format with status code and request ID
- * 
+ *
  * @param error - The error object to respond with
  * @param requestId - Request ID for tracking
  * @param overrideStatus - Optional status code to override automatic categorization
@@ -208,7 +208,7 @@ export function createErrorResponse(
 /**
  * Create success response with proper typing and status code
  * Wraps successful API response data with correct HTTP status
- * 
+ *
  * @param data - Response data to send
  * @param status - HTTP status code (default: 200)
  * @returns NextResponse with data and status
@@ -223,7 +223,7 @@ export function createSuccessResponse<T>(
 /**
  * Validate required query parameters are present
  * Checks if all required parameters are in URL search params
- * 
+ *
  * @param url - URL object with search parameters
  * @param required - Array of required parameter names
  * @returns Validation result with list of missing parameters if any
@@ -243,7 +243,7 @@ export function validateQueryParams(
 /**
  * Safely parse JSON request body with error handling
  * Protects against malformed JSON by catching parse errors
- * 
+ *
  * @param request - NextRequest with JSON body
  * @returns Parsed data if successful, error message if parsing fails
  */
@@ -265,7 +265,7 @@ export async function safeParseJson<T>(
  * Retry failed operations with exponential backoff
  * Implements retry logic with exponential backoff and jitter for resilience
  * Useful for external API calls and transient failures
- * 
+ *
  * @param fn - Async function to retry
  * @param maxRetries - Maximum number of retry attempts (default: 3)
  * @param baseDelayMs - Initial delay in milliseconds (default: 100)
