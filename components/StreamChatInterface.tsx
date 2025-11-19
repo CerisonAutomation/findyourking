@@ -134,14 +134,14 @@ export default function StreamChatInterface({
 
         setMessages(convertedMessages);
 
-        chatChannel.on("message.new", (event: Event) => {
-          if (event.message) {
+        chatChannel.on("message.new", (event: any) => {
+          if (event?.message) {
             if (event.message.text?.includes(`📹 Video call invitation`)) {
-              const customData = event.message as any;
+              const customData = event.message as Record<string, unknown>;
 
               if (customData.caller_id !== userId) {
-                setIncomingCallId(customData.call_id);
-                setCallerName(customData.caller_name || "Someone");
+                setIncomingCallId(customData.call_id as string);
+                setCallerName((customData.caller_name as string) || "Someone");
                 setIncomingCall(true);
               }
               return;
@@ -156,8 +156,8 @@ export default function StreamChatInterface({
                 user_id: event.message.user?.id || "",
               };
 
-              setMessages((prev) => {
-                const messageExists = prev.some((msg) => msg.id === newMsg.id);
+              setMessages((prev: Message[]) => {
+                const messageExists = prev.some((msg: Message) => msg.id === newMsg.id);
                 if (!messageExists) {
                   return [...prev, newMsg];
                 }
@@ -168,8 +168,8 @@ export default function StreamChatInterface({
           }
         });
 
-        chatChannel.on("typing.start", (event: Event) => {
-          if (event.user?.id !== userId) {
+        chatChannel.on("typing.start", (event: any) => {
+          if (event?.user?.id !== userId) {
             setIsTyping(true);
           }
         });

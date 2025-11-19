@@ -16,8 +16,7 @@ export default function MatchesListPage() {
       try {
         const userMatches = await getUserMatches();
         setMatches(userMatches);
-        console.log(userMatches);
-      } catch (error) {
+      } catch (err) {
         setError("Failed to load matches.");
       } finally {
         setLoading(false);

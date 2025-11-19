@@ -8,10 +8,56 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+// Validation constants
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_MIN = 3;
+const USERNAME_MAX = 30;
+const BIO_MAX = 500;
+const MIN_AGE = 18;
+
+function calculateAge(birthdate: string): number {
+  const today = new Date();
+  const birth = new Date(birthdate);
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+}
+
+function validateBirthdate(birthdate: string): { valid: boolean; error?: string } {
+  if (!birthdate) {
+    return { valid: false, error: "Birthdate is required" };
+  }
+  const age = calculateAge(birthdate);
+  if (age < MIN_AGE) {
+    return { valid: false, error: `Must be at least ${MIN_AGE} years old` };
+  }
+  return { valid: true };
+}
+
+function validateUsername(username: string): { valid: boolean; error?: string } {
+  if (!username) {
+    return { valid: false, error: "Username is required" };
+  }
+  if (username.length < USERNAME_MIN) {
+    return { valid: false, error: `Username must be at least ${USERNAME_MIN} characters` };
+  }
+  if (username.length > USERNAME_MAX) {
+    return { valid: false, error: `Username must be at most ${USERNAME_MAX} characters` };
+  }
+  if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+    return { valid: false, error: "Username can only contain letters, numbers, hyphens, and underscores" };
+  }
+  return { valid: true };
+}
+
 export default function EditProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -47,11 +93,40 @@ export default function EditProfilePage() {
     loadProfile();
   }, []);
 
+  function validateForm(): boolean {
+    const errors: Record<string, string> = {};
+
+    if (!formData.full_name?.trim()) {
+      errors.full_name = "Full name is required";
+    }
+
+    const usernameValidation = validateUsername(formData.username);
+    if (!usernameValidation.valid) {
+      errors.username = usernameValidation.error || "Invalid username";
+    }
+
+    const birthdateValidation = validateBirthdate(formData.birthdate);
+    if (!birthdateValidation.valid) {
+      errors.birthdate = birthdateValidation.error || "Invalid birthdate";
+    }
+
+    if (formData.bio && formData.bio.length > BIO_MAX) {
+      errors.bio = `Bio must be at most ${BIO_MAX} characters`;
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
+
   async function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
+
+    if (!validateForm()) {
+      return;
+    }
 
     setSaving(true);
-    setError(null);
 
     try {
       const result = await updateUserProfile(formData);
@@ -61,7 +136,7 @@ export default function EditProfilePage() {
         setError(result.error || "Failed to update profile.");
       }
     } catch (err) {
-      setError("Failed to update profile.");
+      setError(err instanceof Error ? err.message : "Failed to update profile.");
     } finally {
       setSaving(false);
     }
@@ -73,10 +148,17 @@ export default function EditProfilePage() {
     >
   ) {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData((prev: typeof formData) => ({
       ...prev,
-      [name]: value,
+      [name as keyof typeof formData]: value,
     }));
+    // Clear validation error for this field
+    if (validationErrors[name]) {
+      setValidationErrors((prev: Record<string, string | undefined>) => ({
+        ...prev,
+        [name]: undefined,
+      }));
+    }
   }
 
   if (loading) {
