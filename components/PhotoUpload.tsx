@@ -38,6 +38,7 @@ export default function PhotoUpload({
         setError(result.error ?? "Failed to upload photo.");
       }
     } catch (err) {
+      console.error("Failed to upload photo:", err);
       setError("Failed to change photo");
     } finally {
       setUploading(false);
@@ -62,7 +63,7 @@ export default function PhotoUpload({
         onClick={handleClick}
         disabled={uploading}
         className="absolute bottom-0 right-0 bg-pink-500 text-white p-2 rounded-full hover:bg-pink-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-        title="Change photo"
+        title={error || "Change photo"}
       >
         {uploading ? (
           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

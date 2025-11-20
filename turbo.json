@@ -1,0 +1,18 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "lint": {},
+    "type-check": {},
+    "test": {},
+    "test:unit": {},
+    "test:integration": {},
+    "test:e2e": {},
+    "test:e2e:ui": {}
+  }
+}

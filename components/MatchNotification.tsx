@@ -1,5 +1,19 @@
+'use client';
+
 import { UserProfile } from "@/app/profile/page";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+
+import { Sparkles } from "lucide-react";
+import {
+  Toast,
+  ToastClose,
+  ToastDescription,
+  ToastProvider,
+  ToastTitle,
+  ToastViewport,
+} from "@/components/ui/toast";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface MatchNotificationProps {
   match: UserProfile;
@@ -12,88 +26,76 @@ export default function MatchNotification({
   onClose,
   onStartChat,
 }: MatchNotificationProps) {
-  const [isVisible, setIsVisible] = useState<boolean>(true);
+  const [open, setOpen] = useState(true);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-      setTimeout(onClose, 300);
-    }, 5000);
-
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  function handleClose() {
-    setIsVisible(false);
-    setTimeout(onClose, 300);
-  }
-
-  function handleStartChat() {
+  const handleStartChat = () => {
     onStartChat();
-    handleClose();
-  }
+    setOpen(false);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    onClose();
+  };
 
   return (
-    <div
-      className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
-        isVisible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
-      }`}
-    >
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 max-w-sm">
-        <div className="flex items-start space-x-4">
-          <div className="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
-            <img
-              src={match.avatar_url}
-              alt={match.full_name}
-              className="w-full h-full object-cover"
+    <ToastProvider swipeDirection="right">
+      <Toast
+        open={open}
+        onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (!isOpen) onClose();
+        }}
+        duration={5000}
+        variant="success"
+        className="border-pink-500/50 bg-linear-to-br from-pink-500/10 to-purple-500/10"
+      >
+        <div className="flex items-start space-x-4 w-full">
+          <Avatar className="h-16 w-16">
+            <AvatarImage
+              src={match.avatar_url || '/default-avatar.png'}
+              alt={match.full_name || 'User'}
             />
-          </div>
+            <AvatarFallback className="text-2xl">
+              {(match.full_name || 'U')[0]}
+            </AvatarFallback>
+          </Avatar>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                It&apos;s a Match! 🎉
-              </h3>
-              <button
-                onClick={handleClose}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
+            <div className="flex items-center gap-2 mb-1">
+              <ToastTitle className="text-lg font-bold flex items-center gap-2">
+                It's a Match!
+                <Sparkles className="h-5 w-5 text-amber-400" aria-hidden="true" />
+              </ToastTitle>
             </div>
 
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              You and <span className="font-semibold">{match.full_name}</span>{" "}
-              liked each other!
-            </p>
+            <ToastDescription className="text-sm mb-3">
+              You and <span className="font-semibold">{match.full_name}</span> liked each other!
+            </ToastDescription>
 
-            <div className="flex space-x-2">
-              <button
+            <div className="flex gap-2">
+              <Button
                 onClick={handleStartChat}
-                className="flex-1 bg-gradient-to-r from-pink-500 to-red-500 text-white text-sm font-semibold py-2 px-4 rounded-full hover:from-pink-600 hover:to-red-600 transition-all duration-200"
+                size="sm"
+                className="flex-1 bg-linear-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
               >
                 Start Chat
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleClose}
-                className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold py-2 px-4 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200"
+                variant="outline"
+                size="sm"
+                className="flex-1"
               >
                 Later
-              </button>
+              </Button>
             </div>
           </div>
+
+          <ToastClose />
         </div>
-      </div>
-    </div>
+      </Toast>
+      <ToastViewport />
+    </ToastProvider>
   );
 }

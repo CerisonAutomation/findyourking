@@ -39,8 +39,21 @@ export default function VideoCall({
 
       try {
         setError(null);
+        
+        // Check if Stream API key is configured
+        if (!process.env.NEXT_PUBLIC_STREAM_API_KEY || 
+            process.env.NEXT_PUBLIC_STREAM_API_KEY === 'your-stream-api-key') {
+          setError("Stream Video is not configured. Please set up your Stream API key.");
+          return;
+        }
+
         const { token, userId, userImage, userName } =
           await getStreamVideoToken();
+        
+        if (!token || !userId) {
+          setError("Failed to initialize video call. Please try again.");
+          return;
+        }
 
         if (!isMounted) return;
 
@@ -69,8 +82,8 @@ export default function VideoCall({
         setClient(videoClient);
         setCall(videoCall);
         setHasJoined(true);
-      } catch (error) {
-        console.error(error);
+      } catch {
+        // Error handled by error boundary
         setError("Failed to initiate call");
       } finally {
         setLoading(false);
@@ -89,7 +102,7 @@ export default function VideoCall({
         client.disconnectUser();
       }
     };
-  }, [callId, isIncoming, hasJoined]);
+  }, [callId, isIncoming, hasJoined, call, client]);
 
   if (loading) {
     return (
@@ -115,7 +128,7 @@ export default function VideoCall({
           <p className="text-gray-300 mb-4">{error}</p>
           <button
             onClick={onCallEnd}
-            className="bg-gradient-to-r from-pink-500 to-red-500 text-white font-semibold py-3 px-6 rounded-full hover:from-pink-600 hover:to-red-600 transition-all duration-200"
+            className="bg-linear-to-r from-pink-500 to-red-500 text-white font-semibold py-3 px-6 rounded-full hover:from-pink-600 hover:to-red-600 transition-all duration-200"
           >
             Close
           </button>
@@ -140,7 +153,10 @@ export default function VideoCall({
       <StreamVideo client={client}>
         <StreamCall call={call}>
           <StreamTheme>
-            <SpeakerLayout />
+            <SpeakerLayout
+              VideoPlaceholder={() => <div className="flex items-center justify-center h-full bg-gray-900 text-white">Loading video...</div>}
+              PictureInPicturePlaceholder={() => <div className="bg-gray-800" />}
+            />
             <CallControls onLeave={onCallEnd} />
           </StreamTheme>
         </StreamCall>

@@ -1,20 +1,23 @@
 interface MatchButtonsProps {
   onLike: () => void;
   onPass: () => void;
+  isLoading?: boolean;
 }
 
-export default function MatchButtons({ onLike, onPass }: MatchButtonsProps) {
+export default function MatchButtons({ onLike, onPass, isLoading = false }: MatchButtonsProps) {
   return (
-    <div className="flex items-center justify-center gap-8">
+    <div className="flex items-center justify-center gap-8" role="group" aria-label="Match actions">
       <button
         onClick={onPass}
-        className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center border-2 border-gray-300 dark:border-gray-600 hover:border-red-500 dark:hover:border-red-500"
-        aria-label="Pass"
+        disabled={isLoading}
+        className="pass-button w-16 h-16 rounded-full flex items-center justify-center border-2 border-gray-300 dark:border-gray-600 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+        aria-label="Pass on this profile"
       >
         <svg
           className="w-8 h-8 text-red-500"
           fill="currentColor"
           viewBox="0 0 20 20"
+          aria-hidden="true"
         >
           <path
             fillRule="evenodd"
@@ -26,13 +29,15 @@ export default function MatchButtons({ onLike, onPass }: MatchButtonsProps) {
 
       <button
         onClick={onLike}
-        className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center border-2 border-gray-300 dark:border-gray-600 hover:border-green-500 dark:hover:border-green-500"
-        aria-label="Like"
+        disabled={isLoading}
+        className="like-button w-16 h-16 rounded-full flex items-center justify-center border-2 border-gray-300 dark:border-gray-600 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+        aria-label="Like this profile"
       >
         <svg
-          className="w-8 h-8 text-green-500"
+          className="w-8 h-8 text-white"
           fill="currentColor"
           viewBox="0 0 20 20"
+          aria-hidden="true"
         >
           <path
             fillRule="evenodd"

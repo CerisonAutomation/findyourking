@@ -1,5 +1,5 @@
 import { UserProfile } from "@/app/profile/page";
-import { calculateAge } from "@/lib/helpers/calculate-age";
+import { calculateAge } from "@/lib/helpers";
 import Image from "next/image";
 
 const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop";
@@ -24,7 +24,7 @@ export default function MatchCard({ user }: { user: UserProfile }) {
             loading="lazy"
           />
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          <div className="gradient-overlay" />
 
           <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
             <div className="flex items-end justify-between">

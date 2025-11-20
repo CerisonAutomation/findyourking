@@ -1,0 +1,37 @@
+{
+  "common": {
+    "welcome": "Welcome to FindYourKing",
+    "login": "Sign In",
+    "signup": "Sign Up",
+    "logout": "Sign Out",
+    "profile": "Profile",
+    "matches": "Matches",
+    "messages": "Messages",
+    "settings": "Settings",
+    "help": "Help",
+    "search": "Search",
+    "filter": "Filter",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "next": "Next",
+    "previous": "Previous",
+    "page": "Page"
+  },
+  "pagination": {
+    "showing": "Showing {start} to {end} of {total}",
+    "page": "Page {current} of {total}",
+    "goToPage": "Go to page",
+    "itemsPerPage": "Items per page"
+  },
+  "dynamic": {
+    "greet": "Hello ${name}, today is ${dayOfWeek}",
+    "items_count": "You have ${count} items",
+    "last_active": "Last active ${time}",
+    "match_notification": "${username} liked you!"
+  }
+}

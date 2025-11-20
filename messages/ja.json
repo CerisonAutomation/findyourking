@@ -1,0 +1,37 @@
+{
+  "common": {
+    "welcome": "FindYourKingへようこそ",
+    "login": "ログイン",
+    "signup": "新規登録",
+    "logout": "ログアウト",
+    "profile": "プロフィール",
+    "matches": "マッチ",
+    "messages": "メッセージ",
+    "settings": "設定",
+    "help": "ヘルプ",
+    "search": "検索",
+    "filter": "フィルター",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "success": "成功",
+    "next": "次へ",
+    "previous": "前へ",
+    "page": "ページ"
+  },
+  "pagination": {
+    "showing": "{total}件中{start}〜{end}件を表示",
+    "page": "{total}ページ中{current}ページ",
+    "goToPage": "ページに移動",
+    "itemsPerPage": "1ページあたりの項目数"
+  },
+  "dynamic": {
+    "greet": "こんにちは${name}さん、今日は${dayOfWeek}です",
+    "items_count": "${count}個のアイテムがあります",
+    "last_active": "${time}前にアクティブ",
+    "match_notification": "${username}さんがあなたをいいねしました！"
+  }
+}

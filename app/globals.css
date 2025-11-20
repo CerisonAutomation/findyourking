@@ -1,75 +1,593 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================================
+   Find Your King - Masculine Royal Futuristic Theme
+   Vercel Awards Worthy Design System
+   ============================================================================ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* CSS Variables for Find Your King Royal Theme */
+:root {
+  /* Light mode - Royal Elegance */
+  --background: 240 10% 98%;
+  --foreground: 260 20% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 260 20% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 260 20% 10%;
+  --muted: 240 5% 96%;
+  --muted-foreground: 260 10% 45%;
+  
+  /* Primary - Royal Purple */
+  --primary: 258 90% 66%;
+  --primary-foreground: 0 0% 100%;
+  
+  /* Accent - Gold */
+  --accent: 43 96% 56%;
+  --accent-foreground: 0 0% 10%;
+  
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 6% 90%;
+  --input: 240 6% 90%;
+  --ring: 258 90% 66%;
+  --radius: 0.75rem;
+  
+  /* Chart colors - Royal palette */
+  --chart-1: 258 90% 66%;
+  --chart-2: 43 96% 56%;
+  --chart-3: 189 94% 43%;
+  --chart-4: 0 84% 60%;
+  --chart-5: 160 84% 39%;
+  
+  /* Sidebar - Obsidian theme */
+  --sidebar: 240 10% 98%;
+  --sidebar-foreground: 260 20% 10%;
+  --sidebar-primary: 258 90% 66%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 5% 96%;
+  --sidebar-accent-foreground: 260 20% 10%;
+  --sidebar-border: 240 6% 90%;
+  --sidebar-ring: 258 90% 66%;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Dark mode - Obsidian Royalty */
+    --background: 222 47% 4%;
+    --foreground: 240 5% 96%;
+    --card: 222 47% 7%;
+    --card-foreground: 240 5% 96%;
+    --popover: 222 47% 7%;
+    --popover-foreground: 240 5% 96%;
+    --muted: 217 33% 12%;
+    --muted-foreground: 215 20% 65%;
+    
+    /* Primary - Royal Purple (brighter for dark) */
+    --primary: 258 90% 66%;
+    --primary-foreground: 222 47% 7%;
+    
+    /* Accent - Gold (warmer for dark) */
+    --accent: 43 96% 56%;
+    --accent-foreground: 222 47% 7%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 222 47% 7%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 258 90% 66%;
+    
+    /* Chart colors - Royal palette (enhanced for dark) */
+    --chart-1: 258 90% 66%;
+    --chart-2: 43 96% 56%;
+    --chart-3: 189 94% 43%;
+    --chart-4: 0 84% 60%;
+    --chart-5: 160 84% 39%;
+    
+    /* Sidebar - Deep Obsidian */
+    --sidebar: 222 47% 7%;
+    --sidebar-foreground: 240 5% 96%;
+    --sidebar-primary: 258 90% 66%;
+    --sidebar-primary-foreground: 222 47% 7%;
+    --sidebar-accent: 217 33% 12%;
+    --sidebar-accent-foreground: 240 5% 96%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 258 90% 66%;
   }
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+.light {
+  color-scheme: light;
+}
+
+* {
+  border-color: hsl(var(--border));
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-feature-settings: "rlig" 1, "calt" 1;
 }
 
-@layer components {
-  .card-swipe {
-    @apply relative overflow-hidden rounded-2xl shadow-lg bg-white dark:bg-gray-800;
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Respect user's motion preferences for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Base button reset */
+button {
+  appearance: none;
+}
+
+/* Enhanced component styles with modern design patterns */
+.card-swipe {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  background-color: #fff;
+  border: 1px solid hsl(var(--border) / 0.5);
+  transition: transform 0.3s ease-out;
+}
+
+.dark .card-swipe {
+  background-color: hsl(220 10% 15% / 0.9);
+}
+
+.card-swipe:active {
+  scale: 0.95;
+}
+
+/* Enhanced match button with modern gradient and animation */
+.match-button {
+  background-image: linear-gradient(to right, hsl(var(--primary)), hsl(var(--dating-gradient-end)));
+  color: hsl(var(--primary-foreground));
+  font-weight: 700;
+  padding: 1rem 2rem;
+  border-radius: 9999px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease-out;
+  transform: scale(1);
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+  border: none;
+  cursor: pointer;
+}
+
+.match-button:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  scale: 1.05;
+}
+
+.match-button:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+.match-button:active {
+  scale: 1;
+}
+
+/* Enhanced chat container with glassmorphism effect */
+.chat-container {
+  background-color: hsl(0 0% 100% / 0.8);
+  border-radius: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid hsl(var(--border) / 0.3);
+  transition: all 0.3s;
+}
+
+.dark .chat-container {
+  background-color: hsl(220 10% 10% / 0.8);
+}
+
+/* Enhanced chat message bubbles */
+.message-bubble {
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  max-width: 16rem;
+  word-wrap: break-word;
+  transition: all 0.2s;
+}
+
+@media (min-width: 1024px) {
+  .message-bubble {
+    max-width: 24rem;
+  }
+}
+
+.message-bubble.sent {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-bottom-right-radius: 0;
+  margin-left: auto;
+}
+
+.message-bubble.received {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  border-bottom-left-radius: 0;
+  margin-right: auto;
+}
+
+/* Enhanced profile card with better visual hierarchy */
+.profile-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(to bottom right, hsl(var(--card)), hsl(var(--card) / 0.8));
+  border: 1px solid hsl(var(--border) / 0.5);
+  transition: all 0.3s ease-out;
+}
+
+.profile-card:hover {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  translate: 0 -0.25rem;
+}
+
+/* Enhanced navigation link with better feedback */
+.nav-link {
+  padding: 0.5rem 1rem;
+  color: hsl(var(--foreground) / 0.8);
+  font-weight: 500;
+  border-radius: 0.75rem;
+  transition: all 0.3s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background-color: hsl(var(--accent) / 0.1);
+  transition: all 0.3s;
+  z-index: -1;
+}
+
+.nav-link:hover::before {
+  left: 0;
+}
+
+.nav-link:hover {
+  color: hsl(var(--foreground));
+}
+
+/* Enhanced button styles with better feedback */
+.action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: all 0.3s ease-out;
+  transform: scale(1);
+  cursor: pointer;
+  border: none;
+}
+
+.action-button:hover {
+  scale: 1.05;
+}
+
+.action-button:focus-visible {
+  outline: 2px solid hsl(var(--ring) / 0.3);
+  outline-offset: 2px;
+}
+
+.action-button:active {
+  scale: 0.95;
+}
+
+.like-button {
+  background-color: hsl(var(--like-button));
+  color: #fff;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.like-button:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.pass-button {
+  background-color: hsl(var(--pass-button));
+  color: #fff;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.pass-button:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.super-like-button {
+  background: linear-gradient(to right, #3b82f6, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.super-like-button:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Enhanced input fields with better styling */
+.form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: hsl(var(--background));
+  border: 1px solid hsl(var(--input));
+  border-radius: 0.75rem;
+  transition: all 0.2s ease-out;
+  font-size: 1rem;
+  font-family: inherit;
+  color: hsl(var(--foreground));
+}
+
+.form-input::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+.form-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+  border-color: hsl(var(--ring));
+}
+
+.form-input:disabled {
+  background-color: hsl(var(--muted));
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Enhanced notification styles */
+.match-notification {
+  background-color: hsl(var(--match-notification));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+  animation: fade-in 0.5s ease-out, slide-up 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Enhanced video call interface */
+.video-call-container {
+  border-radius: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid hsl(var(--border) / 0.3);
+  backdrop-filter: blur(12px);
+}
+
+/* Enhanced private album styles */
+.private-album-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .private-album-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .private-album-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.private-album-item {
+  aspect-ratio: 1 / 1;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid hsl(var(--border) / 0.3);
+  transition: all 0.3s ease-out;
+}
+
+.private-album-item:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  scale: 1.05;
+}
+
+/* Enhanced dashboard cards */
+.dashboard-card {
+  background: linear-gradient(to bottom right, hsl(var(--card)), hsl(var(--card) / 0.8));
+  border-radius: 1rem;
+  border: 1px solid hsl(var(--border) / 0.3);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease-out;
+}
+
+.dashboard-card:hover {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Enhanced gradient backgrounds */
+.gradient-bg {
+  background: linear-gradient(to bottom right, hsl(var(--background)), hsl(var(--background) / 0.8));
+}
+
+.gradient-overlay {
+  background: linear-gradient(to top, hsl(var(--background) / 0.9), hsl(var(--background) / 0.3), transparent);
+}
+
+/* Enhanced animations */
+.fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+.slide-up {
+  animation: slide-up 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pulse-subtle {
+  animation: pulse-subtle 2s infinite;
+}
+
+.bounce-light {
+  animation: bounce-light 1s ease-in-out;
+}
+
+/* Enhanced utility classes */
+.glass-effect {
+  background-color: hsl(0 0% 100% / 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid hsl(0 0% 100% / 0.2);
+}
+
+.dark .glass-effect {
+  background-color: hsl(0 0% 0% / 0.1);
+  border: 1px solid hsl(0 0% 0% / 0.2);
+}
+
+.neumorphic {
+  box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.1), -8px -8px 16px rgba(255, 255, 255, 0.8);
+}
+
+.dark .neumorphic {
+  box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.3), -8px -8px 16px rgba(50, 50, 50, 0.1);
+}
+
+.text-gradient {
+  background: linear-gradient(to right, hsl(var(--primary)), hsl(var(--dating-gradient-end)));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+}
+
+/* Smooth scrollbar for Webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--foreground) / 0.4);
+}
+
+/* Enhanced keyframe animations */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes bounce-light {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Focus visible states for accessibility */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
   }
 
-  .match-button {
-    @apply bg-gradient-to-r from-pink-500 to-red-500 text-white font-semibold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-200;
+  body {
+    background: white;
+    color: black;
   }
+}
 
-  .chat-container {
-    @apply bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700;
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
+}
 
-  /* Custom scrollbar styles for chat */
-  .chat-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: #d1d5db transparent;
-  }
-
-  .chat-scrollbar::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .chat-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .chat-scrollbar::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 3px;
-  }
-
-  .chat-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
-  }
-
-  .dark .chat-scrollbar {
-    scrollbar-color: #4b5563 transparent;
-  }
-
-  .dark .chat-scrollbar::-webkit-scrollbar-thumb {
-    background: #4b5563;
-  }
-
-  .dark .chat-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #6b7280;
+/* Touch-friendly sizing */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  a,
+  [role="button"],
+  [role="link"] {
+    min-height: 44px;
+    min-width: 44px;
   }
 }

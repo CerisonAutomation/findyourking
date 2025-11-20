@@ -1,9 +1,23 @@
 "use server";
 
-import { StreamChat } from "stream-chat";
+// Wrap Stream Chat imports to make them optional
+let StreamChat: any = null;
+try {
+  const streamModule = require('stream-chat');
+  StreamChat = streamModule.StreamChat;
+} catch {
+  console.warn('stream-chat not available, using native Supabase chat only');
+}
 import { createClient } from "../supabase/server";
 
 export async function getStreamUserToken() {
+  // Check if Stream API key is configured
+  if (!process.env.NEXT_PUBLIC_STREAM_API_KEY || 
+      process.env.NEXT_PUBLIC_STREAM_API_KEY === 'your-stream-api-key') {
+    console.warn('Stream Chat API key not configured. Chat features unavailable.');
+    return { success: false, error: "Stream Chat not configured" };
+  }
+
   const supabase = await createClient();
 
   const {
@@ -15,7 +29,7 @@ export async function getStreamUserToken() {
   }
 
   const { data: userData, error: userError } = await supabase
-    .from("users")
+    .from("profiles")
     .select("full_name, avatar_url")
     .eq("id", user.id)
     .single();
@@ -88,7 +102,7 @@ export async function createOrGetChannel(otherUserId: string) {
   );
 
   const { data: otherUserData, error: otherUserError } = await supabase
-    .from("users")
+    .from("profiles")
     .select("full_name, avatar_url")
     .eq("id", otherUserId)
     .single();
@@ -166,6 +180,13 @@ export async function createVideoCall(otherUserId: string) {
 }
 
 export async function getStreamVideoToken() {
+  // Check if Stream API key is configured
+  if (!process.env.NEXT_PUBLIC_STREAM_API_KEY || 
+      process.env.NEXT_PUBLIC_STREAM_API_KEY === 'your-stream-api-key') {
+    console.warn('Stream Video API key not configured. Video features unavailable.');
+    return { success: false, error: "Stream Video not configured" };
+  }
+
   const supabase = await createClient();
 
   const {
@@ -177,7 +198,7 @@ export async function getStreamVideoToken() {
   }
 
   const { data: userData, error: userError } = await supabase
-    .from("users")
+    .from("profiles")
     .select("full_name, avatar_url")
     .eq("id", user.id)
     .single();

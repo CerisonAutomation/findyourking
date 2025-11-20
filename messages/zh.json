@@ -1,0 +1,37 @@
+{
+  "common": {
+    "welcome": "欢迎来到 FindYourKing",
+    "login": "登录",
+    "signup": "注册",
+    "logout": "退出",
+    "profile": "个人资料",
+    "matches": "匹配",
+    "messages": "消息",
+    "settings": "设置",
+    "help": "帮助",
+    "search": "搜索",
+    "filter": "筛选",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "next": "下一步",
+    "previous": "上一步",
+    "page": "页面"
+  },
+  "pagination": {
+    "showing": "显示 {start} 到 {end}，共 {total} 项",
+    "page": "第 {current} 页，共 {total} 页",
+    "goToPage": "转到页面",
+    "itemsPerPage": "每页项数"
+  },
+  "dynamic": {
+    "greet": "你好 ${name}，今天是 ${dayOfWeek}",
+    "items_count": "你有 ${count} 个项目",
+    "last_active": "${time} 前活跃",
+    "match_notification": "${username} 喜欢你！"
+  }
+}

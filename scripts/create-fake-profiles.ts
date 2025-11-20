@@ -1,14 +1,41 @@
 import { createClient } from "@supabase/supabase-js";
 import { faker } from "@faker-js/faker";
-import "dotenv/config";
+import * as dotenv from "dotenv";
+import * as path from "path";
+import * as fs from "fs";
 
-// Configuration
-const SUPABASE_URL = `your_url`;
-const SUPABASE_SERVICE_ROLE_KEY = `your_service_role_key`;
-const PASSWORD = "password";
+// Load environment variables from .env.local
+const envPath = path.resolve(process.cwd(), '.env.local');
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath });
+  console.log('✅ Loaded .env.local file');
+} else {
+  console.log('⚠️  .env.local file not found, trying default .env');
+  dotenv.config();
+}
+
+// Configuration from environment variables
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const PASSWORD = "TestPassword123!"; // Default password for demo profiles
+
+console.log('Supabase URL:', SUPABASE_URL ? '✅ Set' : '❌ Missing');
+console.log('Service Role Key:', SUPABASE_SERVICE_ROLE_KEY ? '✅ Set' : '❌ Missing');
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('❌ ERROR: Missing environment variables');
+  console.error('Required: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+  console.error('Check your .env.local file');
+  process.exit(1);
+}
 
 // Initialize Supabase client with service role key
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
 
 // Fake profile data
 const fakeProfiles = [
@@ -19,7 +46,8 @@ const fakeProfiles = [
     gender: "female" as const,
     birthdate: "1995-03-15",
     bio: "Love hiking, coffee, and good conversations. Looking for someone to explore the world with! 🌍",
-    avatar_url: " ",
+    avatar_url:
+      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face",
     preferences: {
       age_range: { min: 25, max: 35 },
       distance: 50,

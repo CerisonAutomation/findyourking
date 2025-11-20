@@ -1,0 +1,39 @@
+/**
+ * Advanced Next.js 15 Route Patterns - Parallel Routes
+ * Renders multiple pages in the same layout simultaneously
+ * Docs: https://nextjs.org/docs/app/building-your-application/routing/parallel-routes
+ */
+
+export default function DashboardLayout({
+  children,
+  modal,
+  analytics,
+  notifications,
+}: {
+  children: React.ReactNode;
+  modal: React.ReactNode;
+  analytics: React.ReactNode;
+  notifications: React.ReactNode;
+}) {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Main content */}
+      <main className="container mx-auto p-6">
+        {children}
+      </main>
+
+      {/* Parallel slot: Analytics */}
+      <aside className="fixed top-20 right-4 w-80">
+        {analytics}
+      </aside>
+
+      {/* Parallel slot: Notifications */}
+      <div className="fixed bottom-4 right-4">
+        {notifications}
+      </div>
+
+      {/* Parallel slot: Modal (intercepting routes) */}
+      {modal}
+    </div>
+  );
+}

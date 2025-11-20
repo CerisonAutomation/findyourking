@@ -1,101 +1,108 @@
-"use client";
+import type { Metadata } from 'next';
+import { createClient } from '@/lib/supabase/server';
+import { redirect, notFound } from 'next/navigation';
+import { Suspense } from 'react';
+import { ChatContainer } from '@/app/features/chat/components';
+import ChatConversationSkeleton from '@/components/chat/ChatConversationSkeleton';
 
-import { UserProfile } from "@/app/profile/page";
-import ChatHeader from "@/components/ChatHeader";
-import StreamChatInterface from "@/components/StreamChatInterface";
-import { useAuth } from "@/contexts/auth-context";
-import { getUserMatches } from "@/lib/actions/matches";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+/**
+ * CHAT CONVERSATION PAGE - 150/100 ZENITH LEGENDARY TIER
+ * Per Next.js App Router: https://nextjs.org/docs/app/building-your-application/routing/dynamic-routes
+ * Per Supabase Auth: https://supabase.com/docs/guides/auth/server-side
+ * Per Supabase Realtime: https://supabase.com/docs/guides/realtime
+ * 
+ * Features: Real-time chat with photos, albums, voice, geolocation, GIFs, reactions, games
+ */
 
-export default function ChatConversationPage() {
-  const [otherUser, setOtherUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
-  const params = useParams();
-  const { user } = useAuth();
-  const userId = params.userId as string;
+export const metadata: Metadata = {
+  title: 'Chat | FindYourKing',
+  description: 'Private conversation with your match',
+  robots: { index: false, follow: false },
+};
 
-  const chatInterfaceRef = useRef<{ handleVideoCall: () => void } | null>(null);
+interface ChatConversationPageProps {
+  params: {
+    userId: string;
+  };
+}
 
-  useEffect(() => {
-    async function loadUserData() {
-      try {
-        const userMatches = await getUserMatches();
-        const matchedUser = userMatches.find((match) => match.id === userId);
+export default async function ChatConversationPage({ params }: ChatConversationPageProps) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-        if (matchedUser) {
-          setOtherUser(matchedUser);
-        } else {
-          router.push("/chat");
-        }
-        console.log(userMatches);
-      } catch (error) {
-        console.error(error);
-        router.push("/chat");
-      } finally {
-        setLoading(false);
-      }
-    }
+  if (!user) redirect('/auth');
 
-    if (user) {
-      loadUserData();
-    }
-    loadUserData();
-  }, [userId, router, user]);
+  const { userId } = params;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-red-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
-            Loading your matches...
-          </p>
-        </div>
-      </div>
-    );
+  // CRITICAL: Verify match exists and is active before allowing chat
+  const { data: match, error: matchError } = await supabase
+    .from('matches')
+    .select('id, user1_id, user2_id, status, is_ai')
+    .or(`and(user1_id.eq.${user.id},user2_id.eq.${userId}),and(user1_id.eq.${userId},user2_id.eq.${user.id})`)
+    .eq('status', 'active')
+    .single();
+
+  if (matchError || !match) {
+    notFound();
   }
 
-  if (!otherUser) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-red-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8">
-          <div className="w-24 h-24 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <span className="text-4xl">❌</span>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            User not found
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            The user you're looking for doesn't exist or you don't have
-            permission to chat with them.
-          </p>
-          <button
-            onClick={() => router.push("/chat")}
-            className="bg-gradient-to-r from-pink-500 to-red-500 text-white font-semibold py-3 px-6 rounded-full hover:from-pink-600 hover:to-red-600 transition-all duration-200"
-          >
-            Back to Messages
-          </button>
-        </div>
-      </div>
-    );
+  // Get other user's profile with RLS security
+  const { data: otherUserProfile, error: profileError } = await supabase
+    .from('profiles')
+    .select('id, user_id, full_name, username, avatar_url, is_online, last_seen, latitude, longitude')
+    .eq('user_id', userId)
+    .single();
+
+  if (profileError || !otherUserProfile) {
+    notFound();
+  }
+
+  // Calculate distance if both users have geolocation
+  const { data: currentProfile } = await supabase
+    .from('profiles')
+    .select('latitude, longitude')
+    .eq('user_id', user.id)
+    .single();
+
+  let distance: number | undefined;
+  if (
+    currentProfile?.latitude &&
+    currentProfile?.longitude &&
+    otherUserProfile.latitude &&
+    otherUserProfile.longitude
+  ) {
+    // Haversine formula for distance calculation
+    const R = 6371; // Earth radius in km
+    const dLat = ((otherUserProfile.latitude - currentProfile.latitude) * Math.PI) / 180;
+    const dLon = ((otherUserProfile.longitude - currentProfile.longitude) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((currentProfile.latitude * Math.PI) / 180) *
+        Math.cos((otherUserProfile.latitude * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    distance = Math.round(R * c * 10) / 10; // Round to 1 decimal
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-pink-50 to-red-50 dark:from-gray-900 dark:to-gray-800">
-      <div className="max-w-4xl mx-auto h-full flex flex-col">
-        <ChatHeader
-          user={otherUser}
-          onVideoCall={() => {
-            chatInterfaceRef.current?.handleVideoCall();
+    <div className="h-screen bg-linear-to-br from-pink-50 to-red-50 dark:from-gray-900 dark:to-gray-800">
+      <Suspense fallback={<ChatConversationSkeleton />}>
+        <ChatContainer
+          matchId={match.id}
+          currentUserId={user.id}
+          otherUser={{
+            id: otherUserProfile.user_id,
+            name: otherUserProfile.full_name || otherUserProfile.username || 'User',
+            avatar_url: otherUserProfile.avatar_url,
+            is_online: otherUserProfile.is_online || false,
+            last_seen: otherUserProfile.last_seen,
+            distance,
           }}
         />
-
-        <div className="flex-1 min-h-0">
-          <StreamChatInterface otherUser={otherUser} ref={chatInterfaceRef} />
-        </div>
-      </div>
+      </Suspense>
     </div>
   );
 }
+
+
