@@ -10,7 +10,7 @@ async function testGeminiConnection() {
   console.log('🔱 TESTING GEMINI AI BOYFRIEND MODULE\n');
 
   // Initialize
-  const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyAjLTIXn6qZsUh90-jIumlu3A94kUUBMrE';
+  const apiKey = process.env.GEMINI_API_KEY || 'your-gemini-api-key-here';
   const genAI = new GoogleGenerativeAI(apiKey);
 
   console.log('✅ Step 1: SDK Initialized');
