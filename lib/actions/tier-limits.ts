@@ -1,7 +1,11 @@
 /**
- * Tier Limits Helper Functions
- * Provides utilities for checking and enforcing subscription tier limits
+ * Tier Limits Server Actions
+ * SERVER-SIDE ONLY - Uses next/headers for authentication
+ *
+ * Per Next.js 15 docs: https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations
  */
+
+'use server';
 
 import { createClient } from '@/lib/supabase/server';
 
@@ -39,17 +43,11 @@ export interface StorageUsage {
   last_calculated: string;
 }
 
-/**
- * Get tier limits for the current user
- */
 export async function getUserTierLimits(): Promise<TierLimits | null> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return null;
-    }
+    if (!user) return null;
 
     const { data, error } = await supabase.rpc('get_user_tier_limits', {
       p_user_id: user.id,
@@ -67,16 +65,10 @@ export async function getUserTierLimits(): Promise<TierLimits | null> {
   }
 }
 
-/**
- * Check if user can upload a photo based on tier limits
- */
-export async function canUserUploadPhoto(
-  fileSizeBytes: number
-): Promise<UploadValidation> {
+export async function canUserUploadPhoto(fileSizeBytes: number): Promise<UploadValidation> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-
     if (!user) {
       return {
         allowed: false,
@@ -126,9 +118,40 @@ export async function canUserUploadPhoto(
   }
 }
 
-/**
- * Update storage usage after upload or delete
- */
+export async function getUserStorageUsage(): Promise<StorageUsage | null> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from('storage_usage')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return {
+          user_id: user.id,
+          profile_photos_bytes: 0,
+          chat_media_bytes: 0,
+          private_albums_bytes: 0,
+          total_bytes: 0,
+          last_calculated: new Date().toISOString(),
+        };
+      }
+      console.error('Error fetching storage usage:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('getUserStorageUsage error:', error);
+    return null;
+  }
+}
+
 export async function updateStorageUsage(
   bucketName: string,
   bytesDelta: number
@@ -136,7 +159,6 @@ export async function updateStorageUsage(
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-
     if (!user) {
       return { success: false, error: 'User not authenticated' };
     }
@@ -159,9 +181,6 @@ export async function updateStorageUsage(
   }
 }
 
-/**
- * Track upload for rate limiting
- */
 export async function trackUpload(
   fileSizeBytes: number,
   bucketName: string
@@ -169,7 +188,6 @@ export async function trackUpload(
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-
     if (!user) {
       return { success: false, error: 'User not authenticated' };
     }
@@ -192,177 +210,10 @@ export async function trackUpload(
   }
 }
 
-/**
- * Get user's storage usage
- */
-export async function getUserStorageUsage(): Promise<StorageUsage | null> {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return null;
-    }
-
-    const { data, error } = await supabase
-      .from('storage_usage')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // No storage usage record yet
-        return {
-          user_id: user.id,
-          profile_photos_bytes: 0,
-          chat_media_bytes: 0,
-          private_albums_bytes: 0,
-          total_bytes: 0,
-          last_calculated: new Date().toISOString(),
-        };
-      }
-      console.error('Error fetching storage usage:', error);
-      return null;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('getUserStorageUsage error:', error);
-    return null;
-  }
-}
-
-/**
- * Format bytes to human-readable string
- */
 export function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-}
-
-/**
- * Get tier display information
- */
-export function getTierDisplayInfo(tier: string): {
-  name: string;
-  color: string;
-  description: string;
-} {
-  const tiers = {
-    FREE: {
-      name: 'Free',
-      color: 'gray',
-      description: 'Basic features for getting started',
-    },
-    BRONZE: {
-      name: 'Bronze',
-      color: 'orange',
-      description: 'Entry premium with AI boyfriends',
-    },
-    SILVER: {
-      name: 'Silver',
-      color: 'blue',
-      description: 'Standard premium with priority support',
-    },
-    GOLD: {
-      name: 'Gold',
-      color: 'yellow',
-      description: 'Premium+ with all features unlocked',
-    },
-  };
-
-  return tiers[tier as keyof typeof tiers] || tiers.FREE;
-}
-
-/**
- * Check if user has access to AI boyfriends
- */
-export async function canAccessAIBoyfriends(): Promise<{
-  allowed: boolean;
-  max_count: number;
-  current_count?: number;
-}> {
-  try {
-    const limits = await getUserTierLimits();
-
-    if (!limits) {
-      return { allowed: false, max_count: 0 };
-    }
-
-    if (!limits.ai_boyfriends_enabled) {
-      return { allowed: false, max_count: 0 };
-    }
-
-    // Count current AI boyfriend matches
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { allowed: false, max_count: 0 };
-    }
-
-    const { count } = await supabase
-      .from('matches')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('is_ai', true);
-
-    return {
-      allowed: (count || 0) < limits.ai_boyfriends_max,
-      max_count: limits.ai_boyfriends_max,
-      current_count: count || 0,
-    };
-  } catch (error) {
-    console.error('canAccessAIBoyfriends error:', error);
-    return { allowed: false, max_count: 0 };
-  }
-}
-
-/**
- * Check if user has access to private albums
- */
-export async function canAccessPrivateAlbums(): Promise<{
-  allowed: boolean;
-  max_albums: number;
-  current_albums?: number;
-}> {
-  try {
-    const limits = await getUserTierLimits();
-
-    if (!limits) {
-      return { allowed: false, max_albums: 0 };
-    }
-
-    if (!limits.private_albums_enabled) {
-      return { allowed: false, max_albums: 0 };
-    }
-
-    // Count current private albums
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { allowed: false, max_albums: 0 };
-    }
-
-    // Query the albums based on storage paths
-    const { data: files } = await supabase.storage
-      .from('private-albums')
-      .list(`${user.id}/albums`);
-
-    const albumCount = files?.length || 0;
-
-    return {
-      allowed: albumCount < limits.max_private_albums,
-      max_albums: limits.max_private_albums,
-      current_albums: albumCount,
-    };
-  } catch (error) {
-    console.error('canAccessPrivateAlbums error:', error);
-    return { allowed: false, max_albums: 0 };
-  }
 }

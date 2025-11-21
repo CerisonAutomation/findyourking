@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Upload, X, Star, Loader2, CheckCircle2 } from 'lucide-react';
 import { uploadProfilePhoto, deleteProfilePhoto, setPrimaryPhoto } from '@/lib/actions/photos';
-import { getUserTierLimits, type TierLimits } from '@/lib/helpers/tier-limits';
+import { getUserTierLimits, type TierLimits } from '@/lib/actions/tier-limits';
 
 interface Photo {
   id: string;
