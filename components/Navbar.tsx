@@ -25,6 +25,7 @@ export default function Navbar() {
           {/* Logo - High-end branding */}
           <Link href="/" className="flex items-center space-x-3 group">
             <div className="relative w-10 h-10 group-hover:scale-110 transition-transform duration-300">
+              {/* NOTE: The file 'fyklogo.png' must exist in the 'public' directory at the project root. */}
               <Image
                 src="/fyklogo.png"
                 alt="FindYourKing Logo"
