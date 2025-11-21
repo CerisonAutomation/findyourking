@@ -162,7 +162,8 @@ findyourking/
 - **Next.js 16.0.3** - React framework with App Router
 - **React 19.2.0** - UI library (with React Server Components)
 - **TypeScript 5.9.3** - Type safety (`strict` mode enabled)
-- **Turbopack** - Ultra-fast bundler for development
+- **Turbopack** - Ultra-fast bundler for development  
+  > **Note:** Turbopack is still in beta as of Next.js 16. If you encounter stability issues, you can remove the `--turbopack` flag from the `dev` script in `package.json` to revert to the default bundler.
 
 ### UI & Styling
 
