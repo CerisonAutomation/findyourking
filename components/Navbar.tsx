@@ -1,8 +1,9 @@
 "use client";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
-import { Flame, Heart, MessageCircle, Trophy, User, LogOut, Menu, X } from "lucide-react";
+import { Flame, Heart, MessageCircle, Trophy, User, LogOut, Menu, X, Sparkles } from "lucide-react";
 
 export default function Navbar() {
   const { signOut, user } = useAuth();
@@ -12,6 +13,7 @@ export default function Navbar() {
     { href: "/matches", label: "Discover", Icon: Flame },
     { href: "/matches/list", label: "Matches", Icon: Heart },
     { href: "/chat", label: "Messages", Icon: MessageCircle },
+    { href: "/boyfriend", label: "AI Boyfriend", Icon: Sparkles },
     { href: "/pricing", label: "Premium", Icon: Trophy },
     { href: "/profile", label: "My Profile", Icon: User },
   ];
@@ -22,8 +24,16 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo - High-end branding */}
           <Link href="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 bg-linear-to-br from-purple-600 to-yellow-600 rounded-lg flex items-center justify-center group-hover:shadow-lg group-hover:shadow-purple-500/50 transition-all duration-300">
-              <Trophy size={20} className="text-white font-black" />
+            <div className="relative w-10 h-10 group-hover:scale-110 transition-transform duration-300">
+              {/* NOTE: The file 'fyklogo.png' must exist in the 'public' directory at the project root. */}
+              <Image
+                src="/fyklogo.png"
+                alt="FindYourKing Logo"
+                width={40}
+                height={40}
+                className="object-contain"
+                priority
+              />
             </div>
             <span className="text-lg font-black text-transparent bg-clip-text bg-linear-to-r from-white to-yellow-200 hidden sm:inline">
               Find Your King

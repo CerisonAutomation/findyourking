@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { canUserUploadPhoto, updateStorageUsage, trackUpload } from '@/lib/helpers/tier-limits';
+import { canUserUploadPhoto, updateStorageUsage, trackUpload } from '@/lib/actions/tier-limits';
 
 interface Photo {
   id: string;

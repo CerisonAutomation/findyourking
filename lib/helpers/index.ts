@@ -492,5 +492,5 @@ export function isDarkColor(hex: string): boolean {
 // ============================================================================
 // TIER LIMITS (Dating Platform Specific)
 // ============================================================================
-
-export * from './tier-limits';
+// NOTE: Tier limits moved to server actions - do not export from here
+// Import from '@/lib/actions/tier-limits' instead for server-side usage

@@ -16,7 +16,6 @@ interface Message {
 
 export default function AIBoyfriendPage() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [boyfriendId, setBoyfriendId] = useState<string | null>(null);
   const [boyfriendName, setBoyfriendName] = useState('');
@@ -104,25 +103,24 @@ export default function AIBoyfriendPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  async function sendMessage() {
-    if (!input.trim() || !boyfriendId || loading) return;
+  async function sendMessage(messageText: string) {
+    if (!messageText.trim() || !boyfriendId || loading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input,
+      content: messageText,
       created_at: new Date().toISOString(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setInput('');
     setLoading(true);
 
     try {
       const response = await fetch('/api/boyfriend/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input, boyfriendId }),
+        body: JSON.stringify({ message: messageText, boyfriendId }),
       });
 
       if (!response.ok) throw new Error('Failed to send message');
@@ -229,16 +227,14 @@ export default function AIBoyfriendPage() {
         ))}
       </ChatContainer>
 
-      <ChatInput
-        onSendMessage={async (message: string) => {
-          setInput(message);
-          await sendMessage();
-        }}
-        placeholder="Type your message..."
-        disabled={loading}
-        loading={loading}
-        className="bg-slate-900/80 backdrop-blur-xl border-t border-white/10"
-      />
+      <div className="p-4 bg-slate-900/80 backdrop-blur-xl border-t border-white/10">
+        <ChatInput
+          onSendMessage={sendMessage}
+          placeholder="Type your message..."
+          disabled={loading}
+          loading={loading}
+        />
+      </div>
     </div>
   );
 }
