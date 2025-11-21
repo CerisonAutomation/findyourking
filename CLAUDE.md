@@ -269,7 +269,7 @@ cp .env.example .env.local
 # - Setup webhook endpoint
 
 # 7. Verify setup
-pnpm run setup:check
+pnpm setup:check
 
 # 8. Start development server
 pnpm dev
