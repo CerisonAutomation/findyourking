@@ -111,7 +111,7 @@ findyourking/
 │   ├── useRealtimeChat.ts        # Chat realtime subscription
 │   ├── useRealtimeSubscription.ts # Generic realtime hook
 │   ├── useChatTranslation.ts     # Translation hook
-│   └── useAuth.ts                # Auth state hook
+│   └── (see contexts/AuthContext.tsx for auth state management)
 │
 ├── contexts/                     # React Context providers
 │   └── AuthContext.tsx           # Global auth state
