@@ -1,0 +1,469 @@
+
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user's profile in the FYKING.MEN application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User entity. (Relationship: User 1:1 UserProfile)"
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "URL of the user's profile avatar.",
+          "format": "uri"
+        },
+        "location": {
+          "type": "string",
+          "description": "The user's location.",
+          "format": "string"
+        },
+        "age": {
+          "type": "number",
+          "description": "The user's age."
+        },
+        "height": {
+          "type": "number",
+          "description": "The user's height."
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short biography of the user."
+        },
+        "interestIds": {
+          "type": "array",
+          "description": "References to Interests. (Relationship: UserProfile N:N Interest)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tribeIds": {
+          "type": "array",
+          "description": "References to Tribes. (Relationship: UserProfile N:N Tribe)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "views": {
+          "type": "number",
+          "description": "Number of views the profile has."
+        },
+        "favorites": {
+          "type": "number",
+          "description": "Number of times the profile has been favorited."
+        },
+        "matches": {
+          "type": "number",
+          "description": "Number of matches the user has."
+        }
+      },
+      "required": [
+        "id",
+        "userId"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user account in the FYKING.MEN application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "registrationDate": {
+          "type": "string",
+          "description": "Date and time when the user registered.",
+          "format": "date-time"
+        },
+        "lastLogin": {
+          "type": "string",
+          "description": "Date and time of the user's last login.",
+          "format": "date-time"
+        },
+        "subscriptionId": {
+          "type": "string",
+          "description": "Reference to Subscription. (Relationship: User 1:1 Subscription)"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "registrationDate"
+      ]
+    },
+    "Message": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Message",
+      "type": "object",
+      "description": "Represents a message in the real-time messaging system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Message entity."
+        },
+        "senderId": {
+          "type": "string",
+          "description": "Reference to User who sent the message. (Relationship: User 1:N Message)"
+        },
+        "recipientId": {
+          "type": "string",
+          "description": "Reference to User who received the message. (Relationship: User 1:N Message)"
+        },
+        "content": {
+          "type": "string",
+          "description": "Content of the message."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of when the message was sent.",
+          "format": "date-time"
+        },
+        "isRead": {
+          "type": "boolean",
+          "description": "Indicates whether the message has been read."
+        }
+      },
+      "required": [
+        "id",
+        "senderId",
+        "recipientId",
+        "content",
+        "timestamp"
+      ]
+    },
+    "Interest": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Interest",
+      "type": "object",
+      "description": "Represents an interest that a user can have.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Interest entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the interest."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "Tribe": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Tribe",
+      "type": "object",
+      "description": "Represents a tribe that a user can belong to.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Tribe entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the tribe."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "Favorite": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Favorite",
+      "type": "object",
+      "description": "Represents a user's favorite profile.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Favorite entity."
+        },
+        "userProfileId": {
+          "type": "string",
+          "description": "Reference to the UserProfile that owns the favourite. (Relationship: UserProfile 1:N Favorite)"
+        },
+        "favoriteProfileId": {
+          "type": "string",
+          "description": "Reference to the UserProfile that has been favourited. (Relationship: UserProfile 1:N Favorite)"
+        },
+        "folderId": {
+          "type": "string",
+          "description": "Reference to Folder (Relationship: Folder 1:N Favorite)"
+        }
+      },
+      "required": [
+        "id",
+        "userProfileId",
+        "favoriteProfileId"
+      ]
+    },
+    "MeetNowCard": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MeetNowCard",
+      "type": "object",
+      "description": "Represents a MeetNow card created by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the MeetNowCard entity."
+        },
+        "userProfileId": {
+          "type": "string",
+          "description": "Reference to the UserProfile that created the card. (Relationship: UserProfile 1:N MeetNowCard)"
+        },
+        "activity": {
+          "type": "string",
+          "description": "The activity the user is interested in (gym, drinks, coffee, etc.)."
+        },
+        "location": {
+          "type": "string",
+          "description": "The location where the activity will take place."
+        },
+        "expirationTime": {
+          "type": "string",
+          "description": "The time when the card expires.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userProfileId",
+        "activity",
+        "location",
+        "expirationTime"
+      ]
+    },
+    "Subscription": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Subscription",
+      "type": "object",
+      "description": "Represents a user's subscription.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Subscription entity."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The start date of the subscription.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The end date of the subscription.",
+          "format": "date-time"
+        },
+        "tier": {
+          "type": "string",
+          "description": "The subscription tier (e.g., Premium, Basic)."
+        }
+      },
+      "required": [
+        "id",
+        "startDate",
+        "endDate",
+        "tier"
+      ]
+    },
+    "Folder": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Folder",
+      "type": "object",
+      "description": "Represents a Folder to group Favorite Profiles.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Folder entity."
+        },
+        "userProfileId": {
+          "type": "string",
+          "description": "Reference to the UserProfile that owns the folder. (Relationship: UserProfile 1:N Folder)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the folder."
+        }
+      },
+      "required": [
+        "id",
+        "userProfileId",
+        "name"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous",
+      "google.com"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user account information.  This collection uses the Firebase Auth UID as the document ID. Read access is restricted to the user themselves.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user, corresponding to the Firebase Auth UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/user_profiles/{userProfileId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile data. Includes denormalized 'userId' to enforce ownership.  Read/write access is restricted to the user themselves.",
+          "params": [
+            {
+              "name": "userProfileId",
+              "description": "The unique identifier for the user profile."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/messages/{messageId}",
+        "definition": {
+          "entityName": "Message",
+          "schema": {
+            "$ref": "#/backend/entities/Message"
+          },
+          "description": "Stores messages. Read/write access is restricted to the sender and recipient of the message.",
+          "params": [
+            {
+              "name": "messageId",
+              "description": "The unique identifier for the message."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/interests/{interestId}",
+        "definition": {
+          "entityName": "Interest",
+          "schema": {
+            "$ref": "#/backend/entities/Interest"
+          },
+          "description": "Stores interests. Public read access.",
+          "params": [
+            {
+              "name": "interestId",
+              "description": "The unique identifier for the interest."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/tribes/{tribeId}",
+        "definition": {
+          "entityName": "Tribe",
+          "schema": {
+            "$ref": "#/backend/entities/Tribe"
+          },
+          "description": "Stores tribes. Public read access.",
+          "params": [
+            {
+              "name": "tribeId",
+              "description": "The unique identifier for the tribe."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/favorites/{favoriteId}",
+        "definition": {
+          "entityName": "Favorite",
+          "schema": {
+            "$ref": "#/backend/entities/Favorite"
+          },
+          "description": "Stores favorites. Includes denormalized 'userProfileId' to enforce ownership. Read/write access is restricted to the owner of the favorite (userProfileId).",
+          "params": [
+            {
+              "name": "favoriteId",
+              "description": "The unique identifier for the favorite."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/meet_now_cards/{meetNowCardId}",
+        "definition": {
+          "entityName": "MeetNowCard",
+          "schema": {
+            "$ref": "#/backend/entities/MeetNowCard"
+          },
+          "description": "Stores meet now cards. Includes denormalized 'userProfileId' to enforce ownership. Read/write access is restricted to the owner of the card.",
+          "params": [
+            {
+              "name": "meetNowCardId",
+              "description": "The unique identifier for the meet now card."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/subscriptions/{subscriptionId}",
+        "definition": {
+          "entityName": "Subscription",
+          "schema": {
+            "$ref": "#/backend/entities/Subscription"
+          },
+          "description": "Stores subscription information.  Access is restricted based on the subscription tier (e.g., admin access for managing subscriptions).",
+          "params": [
+            {
+              "name": "subscriptionId",
+              "description": "The unique identifier for the subscription."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/folders/{folderId}",
+        "definition": {
+          "entityName": "Folder",
+          "schema": {
+            "$ref": "#/backend/entities/Folder"
+          },
+          "description": "Stores folders for organizing favorites. Includes denormalized 'userProfileId' to enforce ownership. Read/write access is restricted to the owner of the folder.",
+          "params": [
+            {
+              "name": "folderId",
+              "description": "The unique identifier for the folder."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to provide a secure and scalable data model for the FYKING.MEN application, following the principles of Authorization Independence, Clarity of Intent, DBAC, and QAPs. It leverages denormalization and structural segregation to optimize security rules and querying. Path-based ownership is favored where applicable, and membership maps are used for collaborative data.\\n\\n**Authorization Independence (Denormalization):**\\n*   UserProfiles include `userId` to enforce ownership. Messages store `senderId` and `recipientId` avoiding `get()` calls in security rules when routing messages between users.\\n*   Favorite and Folder entities includes `userProfileId` to ensure that they belong to an owner and avoid `get()` calls.\\n*   MeetNowCards include `userProfileId` to ensure that they belong to an owner and avoid `get()` calls.\\n\\n\\n**Structural Segregation:**\\n*   User data (User and UserProfile) is separated into distinct collections, allowing for different security rules to be applied to each.\\n\\n\\n**Access Modeling:**\\n*   Private data is primarily managed using path-based ownership. User profiles and related data are stored under `/users/{userId}`.\\n*   Messages are stored in a top-level `/messages` collection, with security rules enforcing that only the sender or recipient can access the message. This avoids deep nesting and keeps rules simple.\\n*   Global roles aren't explicitly defined, but the structure supports adding role-based collections if needed in the future (e.g., `/roles_admin/{uid}`).\\n\\n\\n**QAPs (Rules are not Filters):**\\n*   The structure facilitates secure `list` operations. For example, listing messages requires checking that the user is either the sender or recipient, but doesn't require filtering on the client-side.\\n*   The separation of data based on access control requirements into distinct collections ensures that rules can be written to allow listing without exposing unauthorized data.\\n\\n**Invariants:**\\n*   Path based ownership enforces ownership, and timestamp fields ensure data integrity.\\n*   Denormalized data (e.g., `userId` in UserProfile) enforces the consistency of ownership."
+  }
+}
+
+    

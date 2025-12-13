@@ -1,0 +1,233 @@
+/**
+ * @file firestore.rules
+ * @description Firestore Security Rules for the FYKING.MEN application.
+ *
+ * @version 2
+ *
+ * @section Core Philosophy
+ * This ruleset enforces a strict security model centered around user ownership and explicit data sharing.
+ * The default posture is to deny all access unless a rule explicitly grants it. Data access is primarily
+ * determined by the authenticated user's UID.
+ *
+ * @section Data Structure
+ * The data model primarily uses top-level collections. User-specific data that is private
+ * is secured by a denormalized ownership field (e.g., 'userId', 'userProfileId') on each document.
+ * Publicly readable data (like 'interests' and 'tribes') is stored in separate top-level collections
+ * with write access disabled for clients.
+ *
+ * @section Key Security Decisions
+ * - User Isolation: Users can only create, read, update, or delete their own data. They cannot access
+ *   the data of other users unless explicitly shared (e.g., messages).
+ * - No Global Listing: Listing entire collections of private user data (e.g., 'messages', 'favorites')
+ *   is prohibited to prevent data leakage and ensure queries are specific and secure. Client applications
+ *   must query based on known identifiers.
+ * - Public Data: Collections like 'interests' and 'tribes' are publicly readable to all clients but are
+ *   not writable, treating them as admin-managed lookup tables.
+ * - Immutable Ownership: Once a document is created, its ownership link (e.g., the 'userId' field)
+ *   cannot be changed.
+ *
+ * @section Denormalization for Authorization
+ * To create simpler and more performant rules, ownership and access control data are denormalized
+ * directly onto the documents being secured. For example, a 'Favorite' document contains a 'userProfileId'
+ * field, and a 'Message' document contains both 'senderId' and 'recipientId'. This avoids slow, costly,
+ * and sometimes impossible `get()` calls to other documents during rule evaluation.
+ *
+ * @section Structural Segregation
+ * User account data ('users') and user profile data ('user_profiles') are stored in separate collections.
+ * This allows for different access patterns: user account data is strictly private, while profile data
+ * is readable by any signed-in user to enable the app's social features.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the authenticated user's UID matches the provided userId.
+     * This is the primary function for enforcing document ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if the document exists AND the user is the owner.
+     * Used for safe update and delete operations.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Validates that the user ID in a newly created document matches the
+     * authenticated user's UID. Enforces that users can only create documents for themselves.
+     */
+    function isCreatingOwnDocument(userIdField) {
+      return isSignedIn() && request.resource.data[userIdField] == request.auth.uid;
+    }
+
+    /**
+     * Validates that the user ID field on a document remains unchanged during an update.
+     * This prevents re-assigning ownership of a document.
+     */
+    function isUserIdImmutable(userIdField) {
+      return request.resource.data[userIdField] == resource.data[userIdField];
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection Rules
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Manages user account data. Document ID must be the user's auth UID.
+     * @path /users/{userId}
+     * @allow A user (create)s their own account document where `{userId}` matches their auth UID.
+     * @deny An authenticated user attempts to (get) another user's account document.
+     * @principle Restricts access to a user's own private data tree (Self-Creation & Ownership).
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Disallow listing all users for security and privacy.
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+
+      // Deny access to any subcollections under /users by default.
+      match /{allPaths=**} {
+        allow read, write: if false;
+      }
+    }
+
+    /**
+     * @description Stores public-facing user profiles. Readable by any authenticated user.
+     * @path /user_profiles/{userProfileId}
+     * @allow Any signed-in user (get)s a user profile to view it.
+     * @deny A user attempts to (update) another user's profile.
+     * @principle Enforces document ownership for writes, while allowing reads for social features.
+     */
+    match /user_profiles/{userProfileId} {
+      allow get, list: if isSignedIn();
+      allow create: if isCreatingOwnDocument('userId');
+      allow update: if isOwner(resource.data.userId) && resource != null && isUserIdImmutable('userId');
+      allow delete: if isOwner(resource.data.userId) && resource != null;
+    }
+
+    /**
+     * @description Stores private messages between two users.
+     * @path /messages/{messageId}
+     * @allow The sender or recipient of a message (get)s the message document.
+     * @deny A user attempts to (list) all messages in the collection.
+     * @principle Restricts access to a document to a specific set of collaborators (sender/recipient).
+     */
+    match /messages/{messageId} {
+      allow get: if isSignedIn() && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.recipientId);
+      allow list: if false; // CRITICAL: Listing a top-level private collection is insecure.
+      allow create: if isCreatingOwnDocument('senderId');
+      allow update: if isSignedIn() && resource != null && request.auth.uid == resource.data.senderId && request.resource.data.senderId == resource.data.senderId && request.resource.data.recipientId == resource.data.recipientId;
+      allow delete: if isSignedIn() && resource != null && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.recipientId);
+    }
+
+    /**
+     * @description Stores a global list of available interests.
+     * @path /interests/{interestId}
+     * @allow Any client, authenticated or not, (get)s the list of interests.
+     * @deny Any client attempts to (create) a new interest.
+     * @principle Provides public read-only access to application-wide configuration data.
+     */
+    match /interests/{interestId} {
+      allow get, list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Stores a global list of available tribes.
+     * @path /tribes/{tribeId}
+     * @allow Any client, authenticated or not, (get)s the list of tribes.
+     * @deny Any client attempts to (create) a new tribe.
+     * @principle Provides public read-only access to application-wide configuration data.
+     */
+    match /tribes/{tribeId} {
+      allow get, list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Stores a user's favorited profiles. Ownership is based on 'userProfileId'.
+     * @path /favorites/{favoriteId}
+     * @allow The owner (create)s a new favorite document, setting 'userProfileId' to their own auth UID.
+     * @deny A user attempts to (get) another user's list of favorites.
+     * @principle Enforces document ownership using a denormalized owner ID.
+     */
+    match /favorites/{favoriteId} {
+      // NOTE: This rule assumes the 'userProfileId' field stores the owner's Firebase Auth UID.
+      allow get: if isOwner(resource.data.userProfileId);
+      allow list: if false; // CRITICAL: Listing a top-level private collection is insecure.
+      allow create: if isCreatingOwnDocument('userProfileId');
+      allow update: if isExistingOwner(resource.data.userProfileId) && isUserIdImmutable('userProfileId');
+      allow delete: if isExistingOwner(resource.data.userProfileId);
+    }
+
+    /**
+     * @description Stores user-created "Meet Now" cards. Ownership is based on 'userProfileId'.
+     * @path /meet_now_cards/{meetNowCardId}
+     * @allow The owner (create)s a new MeetNowCard, setting 'userProfileId' to their own auth UID.
+     * @deny A user attempts to (delete) another user's MeetNowCard.
+     * @principle Enforces document ownership using a denormalized owner ID.
+     */
+    match /meet_now_cards/{meetNowCardId} {
+      // NOTE: This rule assumes the 'userProfileId' field stores the owner's Firebase Auth UID.
+      allow get: if isOwner(resource.data.userProfileId);
+      allow list: if false; // CRITICAL: Listing a top-level private collection is insecure.
+      allow create: if isCreatingOwnDocument('userProfileId');
+      allow update: if isExistingOwner(resource.data.userProfileId) && isUserIdImmutable('userProfileId');
+      allow delete: if isExistingOwner(resource.data.userProfileId);
+    }
+
+    /**
+     * @description Stores subscription data. Access is fully restricted from the client.
+     * @path /subscriptions/{subscriptionId}
+     * @allow No operations are allowed from the client.
+     * @deny Any client attempts to read or write subscription data.
+     * @principle Protects sensitive data by requiring mutations to be handled by a trusted backend server.
+     */
+    match /subscriptions/{subscriptionId} {
+      // CRITICAL: This collection is locked down because the Subscription entity is missing a
+      // 'userId' field. Without it, there is no way to securely determine ownership.
+      allow get: if false; // TODO: Add a 'userId' field to the Subscription document to enable owner-only reads.
+      allow list: if false;
+      allow create: if false; // TODO: Writes should be handled by a trusted server environment.
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Stores user-created folders for organizing favorites. Ownership is based on 'userProfileId'.
+     * @path /folders/{folderId}
+     * @allow The owner (create)s a new folder, setting 'userProfileId' to their own auth UID.
+     * @deny A user attempts to (update) another user's folder.
+     * @principle Enforces document ownership using a denormalized owner ID.
+     */
+    match /folders/{folderId} {
+      // NOTE: This rule assumes the 'userProfileId' field stores the owner's Firebase Auth UID.
+      allow get: if isOwner(resource.data.userProfileId);
+      allow list: if false; // CRITICAL: Listing a top-level private collection is insecure.
+      allow create: if isCreatingOwnDocument('userProfileId');
+      allow update: if isExistingOwner(resource.data.userProfileId) && isUserIdImmutable('userProfileId');
+      allow delete: if isExistingOwner(resource.data.userProfileId);
+    }
+  }
+}
