@@ -1,20 +1,29 @@
 import { createClient } from '@/lib/supabase-server';
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 
-export async function GET(request: Request) {
+/** Prevent open-redirect: only allow relative paths */
+function sanitizeNext(next: string | null): string {
+  if (!next || !next.startsWith('/') || next.startsWith('//')) return '/discover';
+  return next;
+}
+
+export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  // if "next" is in param, use it as the redirect URL
-  const next = searchParams.get('next') ?? '/';
+  const next = sanitizeNext(searchParams.get('next'));
 
-  if (code) {
-    const supabase = createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
-    }
+  if (!code) {
+    console.error('[auth/callback] Missing code parameter');
+    return NextResponse.redirect(`${origin}/login?error=missing_code`);
   }
 
-  // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+  const supabase = createClient();
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (error) {
+    console.error('[auth/callback] exchangeCodeForSession error:', error.message);
+    return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+  }
+
+  return NextResponse.redirect(`${origin}${next}`);
 }
