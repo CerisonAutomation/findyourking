@@ -1,6 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind v4 — single import directive replaces @tailwind base/components/utilities */
+@import "tailwindcss";
+@import "tailwindcss-animate";
 
 @layer base {
   :root {
@@ -31,35 +31,28 @@
     --border: 330 85% 60%;
     --input: 240 3.7% 15.9%;
     --ring: 330 85% 70%;
-    
+
     --radius: 0.75rem;
   }
 
+  /* Dark is the default theme — keep identical for now */
   .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
-
     --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
-
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-
     --primary: 330 85% 60%;
     --primary-foreground: 0 0% 98%;
-
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
-
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
-
     --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
-
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-
     --border: 330 85% 60%;
     --input: 240 3.7% 15.9%;
     --ring: 330 85% 70%;
@@ -70,32 +63,53 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-image: 
-      linear-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px),
-      linear-gradient(to right, hsl(var(--primary) / 0.1) 1px, transparent 1px);
-    background-size: 3rem 3rem;
-    z-index: -1;
-    pointer-events: none;
-    animation: pulseGrid 15s infinite ease-in-out;
+
+  /* Accessible focus rings */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+
+  /* Smooth scroll — respects reduced motion */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
+/* ── Animated grid background ── */
+@layer utilities {
+  .bg-grid {
+    background-image:
+      linear-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px),
+      linear-gradient(to right, hsl(var(--primary) / 0.1) 1px, transparent 1px);
+    background-size: 3rem 3rem;
+  }
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  @apply bg-grid;
+  z-index: -1;
+  pointer-events: none;
+  animation: pulseGrid 15s infinite ease-in-out;
+}
+
 @keyframes pulseGrid {
-  0%, 100% {
-    opacity: 0.2;
-  }
-  50% {
-    opacity: 0.4;
-  }
+  0%, 100% { opacity: 0.2; }
+  50%       { opacity: 0.4; }
 }
