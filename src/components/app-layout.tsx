@@ -34,6 +34,7 @@ import { useUser } from '@/hooks/use-user';
 import { createClient } from '@/lib/supabase-client';
 import { useQuery } from '@tanstack/react-query';
 import type { UserProfile } from '@/lib/types';
+import { AiKingDock } from '@/components/ai-king-dock';
 
 const QuantumAvatarDock = React.lazy(() =>
   import('@/components/quantum-avatar-dock').then((mod) => ({ default: mod.default }))
@@ -43,10 +44,11 @@ async function fetchUserProfile(userId?: string): Promise<UserProfile | null> {
   if (!userId) return null;
   const supabase = createClient();
   try {
+    // ✅ Supabase column is snake_case user_id — camelCase transform handles the rest
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('userId', userId)
+      .eq('user_id', userId)
       .single();
 
     if (error && error.code !== 'PGRST116') {
@@ -55,7 +57,6 @@ async function fetchUserProfile(userId?: string): Promise<UserProfile | null> {
     return data as UserProfile;
   } catch (error) {
     console.error('Error fetching user profile:', error);
-    // Optionally re-throw or handle as needed, for now returning null
     return null;
   }
 }
@@ -66,6 +67,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     queryKey: ['userProfile', user?.id],
     queryFn: () => fetchUserProfile(user?.id),
     enabled: !!user,
+    staleTime: 1000 * 60 * 5, // 5 min — avoid hammering Supabase on every render
   });
   const router = useRouter();
 
@@ -74,12 +76,12 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
     if (!user) {
       router.replace('/login');
-    } else if (user && !profile?.onboarded) {
+    } else if (user && profile !== undefined && !profile?.onboarded) {
       router.replace('/onboarding');
     }
   }, [user, profile, isUserLoading, isProfileLoading, router]);
 
-  if (isUserLoading || (user && (isProfileLoading || !profile))) {
+  if (isUserLoading || (user && (isProfileLoading || profile === undefined))) {
     return <RootPageLoader />;
   }
 
@@ -117,7 +119,6 @@ function AppShell({
         { href: '/photo-curation', label: 'Photo Oracle', icon: Wand2 },
       ];
 
-      // Add admin nav item if user is admin
       if (profile?.role === 'admin') {
         items.push({ href: '/admin', label: 'Admin', icon: Shield });
       }
@@ -139,13 +140,17 @@ function AppShell({
         <SidebarContent as="nav" className="p-2">
           <SidebarMenu>
             {navItems.map((item) => (
-              <SidebarMenuItem key={item.href} asChild>
-                <Link href={item.href} aria-label={item.label}>
-                  <SidebarMenuButton isActive={pathname.startsWith(item.href)} tooltip={{ children: item.label }}>
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname.startsWith(item.href)}
+                  tooltip={{ children: item.label }}
+                >
+                  <Link href={item.href} aria-label={item.label}>
                     <item.icon aria-hidden="true" />
                     <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </Link>
+                  </Link>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
@@ -154,9 +159,13 @@ function AppShell({
           <SidebarMenu>
             {profile ? (
               <>
-                <SidebarMenuItem asChild>
-                  <Link href="/account">
-                    <SidebarMenuButton isActive={pathname === '/account'} tooltip={{ children: 'Account' }}>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === '/account'}
+                    tooltip={{ children: 'Account' }}
+                  >
+                    <Link href="/account">
                       <Avatar className="size-6">
                         <AvatarImage src={profile.avatarUrl || undefined} />
                         <AvatarFallback>
@@ -164,8 +173,8 @@ function AppShell({
                         </AvatarFallback>
                       </Avatar>
                       <span className="truncate">{profile?.id || 'Account'}</span>
-                    </SidebarMenuButton>
-                  </Link>
+                    </Link>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton onClick={handleLogout} tooltip={{ children: 'Logout' }}>
@@ -175,13 +184,13 @@ function AppShell({
                 </SidebarMenuItem>
               </>
             ) : (
-              <SidebarMenuItem asChild>
-                <Link href="/login">
-                  <SidebarMenuButton tooltip={{ children: 'Login' }}>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip={{ children: 'Login' }}>
+                  <Link href="/login">
                     <LogIn />
                     <span>Login</span>
-                  </SidebarMenuButton>
-                </Link>
+                  </Link>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             )}
           </SidebarMenu>
@@ -190,6 +199,10 @@ function AppShell({
 
       <SidebarInset>{children}</SidebarInset>
 
+      {/* ✅ AI King floating chat orb — was imported but never rendered */}
+      <AiKingDock />
+
+      {/* Quantum lifestyle dock */}
       <Suspense fallback={null}>
         <QuantumAvatarDock />
       </Suspense>
@@ -206,7 +219,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 }
 
 export const RootPageLoader = () => (
-  <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-background gap-4" aria-live="polite">
+  <main
+    className="flex min-h-screen flex-col items-center justify-center p-4 bg-background gap-4"
+    aria-live="polite"
+  >
     <Logo />
     <Loader2 className="size-12 animate-spin text-primary" />
     <p className="text-muted-foreground">Initializing Your Kingdom...</p>
