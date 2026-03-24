@@ -31,7 +31,7 @@ import {
 import { Logo } from './logo';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { useUser } from '@/hooks/use-user';
-import { createClient } from '@/lib/supabase-client';
+import { createClient, transformToCamel } from '@/lib/supabase-client';
 import { useQuery } from '@tanstack/react-query';
 import type { UserProfile } from '@/lib/types';
 import { AiKingDock } from '@/components/ai-king-dock';
@@ -44,17 +44,16 @@ async function fetchUserProfile(userId?: string): Promise<UserProfile | null> {
   if (!userId) return null;
   const supabase = createClient();
   try {
-    // ✅ Supabase column is snake_case user_id — camelCase transform handles the rest
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', userId) // ✅ snake_case DB column
       .single();
 
     if (error && error.code !== 'PGRST116') {
       throw new Error(error.message, { cause: error });
     }
-    return data as UserProfile;
+    return data ? transformToCamel<UserProfile>(data) : null;
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return null;
@@ -67,13 +66,12 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     queryKey: ['userProfile', user?.id],
     queryFn: () => fetchUserProfile(user?.id),
     enabled: !!user,
-    staleTime: 1000 * 60 * 5, // 5 min — avoid hammering Supabase on every render
+    staleTime: 1000 * 60 * 5,
   });
   const router = useRouter();
 
   useEffect(() => {
     if (isUserLoading || (user && isProfileLoading)) return;
-
     if (!user) {
       router.replace('/login');
     } else if (user && profile !== undefined && !profile?.onboarded) {
@@ -84,7 +82,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   if (isUserLoading || (user && (isProfileLoading || profile === undefined))) {
     return <RootPageLoader />;
   }
-
   if (!user || !profile?.onboarded) {
     return <RootPageLoader />;
   }
@@ -92,41 +89,37 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <AppShell profile={profile}>{children}</AppShell>;
 }
 
+const NAV_ITEMS = [
+  { href: '/discover',       label: 'Discover',     icon: LayoutGrid   },
+  { href: '/favorites',      label: 'Favorites',    icon: Sparkles     },
+  { href: '/meet-now',       label: 'Meet Now',     icon: Zap          },
+  { href: '/bookings',       label: 'Bookings',     icon: Calendar     },
+  { href: '/messages',       label: 'Messages',     icon: MessageSquare },
+  { href: '/photo-curation', label: 'Photo Oracle', icon: Wand2        },
+] as const;
+
 function AppShell({
   children,
   profile,
 }: {
   children: React.ReactNode;
-  profile: UserProfile | null;
+  profile: UserProfile;
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const supabase = createClient();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await createClient().auth.signOut();
     router.push('/login');
   };
 
-  const navItems = useMemo(
-    () => {
-      const items = [
-        { href: '/discover', label: 'Discover', icon: LayoutGrid },
-        { href: '/favorites', label: 'Favorites', icon: Sparkles },
-        { href: '/meet-now', label: 'Meet Now', icon: Zap },
-        { href: '/bookings', label: 'Bookings', icon: Calendar },
-        { href: '/messages', label: 'Messages', icon: MessageSquare },
-        { href: '/photo-curation', label: 'Photo Oracle', icon: Wand2 },
-      ];
-
-      if (profile?.role === 'admin') {
-        items.push({ href: '/admin', label: 'Admin', icon: Shield });
-      }
-
-      return items;
-    },
-    [profile?.role]
-  );
+  const navItems = useMemo(() => {
+    const items = [...NAV_ITEMS] as Array<{ href: string; label: string; icon: React.ElementType }>;
+    if (profile?.role === 'admin') {
+      items.push({ href: '/admin', label: 'Admin', icon: Shield });
+    }
+    return items;
+  }, [profile?.role]);
 
   return (
     <SidebarProvider>
@@ -137,24 +130,28 @@ function AppShell({
             <SidebarTrigger />
           </div>
         </SidebarHeader>
-        <SidebarContent as="nav" className="p-2">
-          <SidebarMenu>
-            {navItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname.startsWith(item.href)}
-                  tooltip={{ children: item.label }}
-                >
-                  <Link href={item.href} aria-label={item.label}>
-                    <item.icon aria-hidden="true" />
-                    <span>{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
+
+        <SidebarContent className="p-2">
+          <nav aria-label="Main navigation">
+            <SidebarMenu>
+              {navItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith(item.href)}
+                    tooltip={{ children: item.label }}
+                  >
+                    <Link href={item.href} aria-label={item.label}>
+                      <item.icon aria-hidden="true" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </nav>
         </SidebarContent>
+
         <SidebarFooter className="p-2">
           <SidebarMenu>
             {profile ? (
@@ -167,19 +164,17 @@ function AppShell({
                   >
                     <Link href="/account">
                       <Avatar className="size-6">
-                        <AvatarImage src={profile.avatarUrl || undefined} />
-                        <AvatarFallback>
-                          <UserIcon />
-                        </AvatarFallback>
+                        <AvatarImage src={profile.avatarUrl ?? undefined} alt={profile.id ?? ''} />
+                        <AvatarFallback><UserIcon className="size-3" /></AvatarFallback>
                       </Avatar>
-                      <span className="truncate">{profile?.id || 'Account'}</span>
+                      <span className="truncate">{profile.id ?? 'Account'}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton onClick={handleLogout} tooltip={{ children: 'Logout' }}>
-                    <LogOut />
-                    <span>Logout</span>
+                  <SidebarMenuButton onClick={handleLogout} tooltip={{ children: 'Sign out' }}>
+                    <LogOut aria-hidden="true" />
+                    <span>Sign out</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </>
@@ -199,10 +194,8 @@ function AppShell({
 
       <SidebarInset>{children}</SidebarInset>
 
-      {/* ✅ AI King floating chat orb — was imported but never rendered */}
       <AiKingDock />
 
-      {/* Quantum lifestyle dock */}
       <Suspense fallback={null}>
         <QuantumAvatarDock />
       </Suspense>
@@ -222,9 +215,10 @@ export const RootPageLoader = () => (
   <main
     className="flex min-h-screen flex-col items-center justify-center p-4 bg-background gap-4"
     aria-live="polite"
+    aria-label="Loading application"
   >
     <Logo />
     <Loader2 className="size-12 animate-spin text-primary" />
-    <p className="text-muted-foreground">Initializing Your Kingdom...</p>
+    <p className="text-muted-foreground text-sm">Initializing Your Kingdom…</p>
   </main>
 );

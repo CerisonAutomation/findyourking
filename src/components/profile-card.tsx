@@ -21,57 +21,55 @@ interface ProfileCardProps {
   onToggleFavorite?: () => void;
 }
 
-export function ProfileCard({ user: profileUser, matchScore, isOnline, distance, isFavorite: initialIsFavorite, onToggleFavorite }: ProfileCardProps) {
+export function ProfileCard({
+  user: profileUser,
+  matchScore,
+  isOnline,
+  distance,
+  isFavorite: initialIsFavorite,
+  onToggleFavorite,
+}: ProfileCardProps) {
   const { user: currentUser } = useUser();
   const router = useRouter();
-  const [isFavorite, setIsFavorite] = useState(initialIsFavorite || false);
-  const supabase = createClient();
+  const [isFavorite, setIsFavorite] = useState(initialIsFavorite ?? false);
 
   useEffect(() => {
-    setIsFavorite(initialIsFavorite || false);
+    setIsFavorite(initialIsFavorite ?? false);
   }, [initialIsFavorite]);
 
-  const handleStartConversation = async (e: React.MouseEvent) => {
+  const handleStartConversation = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-
     if (!currentUser || !profileUser.userId || currentUser.id === profileUser.userId) return;
-
-    // Just navigate, the chat page will handle creating the conversation
     router.push(`/messages/${profileUser.userId}`);
   };
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-
     if (!currentUser || !profileUser.userId || currentUser.id === profileUser.userId) return;
+
+    const supabase = createClient(); // singleton — no new instance per call
 
     try {
       if (isFavorite) {
-        // Remove from favorites
         const { error } = await supabase
           .from('favorites')
           .delete()
-          .eq('user_id', currentUser.id)
-          .eq('favorited_user_id', profileUser.userId);
-
+          .eq('user_id', currentUser.id)              // ✅ snake_case
+          .eq('favorited_user_id', profileUser.userId); // ✅ snake_case
         if (error) throw error;
-
         setIsFavorite(false);
         toast.success('Removed from favorites');
         onToggleFavorite?.();
       } else {
-        // Add to favorites
         const { error } = await supabase
           .from('favorites')
           .insert({
-            user_id: currentUser.id,
-            favorited_user_id: profileUser.userId
+            user_id: currentUser.id,                   // ✅ snake_case
+            favorited_user_id: profileUser.userId,     // ✅ snake_case
           });
-
         if (error) throw error;
-
         setIsFavorite(true);
         toast.success('Added to favorites');
         onToggleFavorite?.();
@@ -81,10 +79,8 @@ export function ProfileCard({ user: profileUser, matchScore, isOnline, distance,
       toast.error('Failed to update favorites');
     }
   };
-  
-  if (!profileUser || !profileUser.userId) {
-    return null;
-  }
+
+  if (!profileUser?.userId) return null;
 
   return (
     <Link href={`/profile/${profileUser.userId}`} className="block group">
@@ -92,13 +88,16 @@ export function ProfileCard({ user: profileUser, matchScore, isOnline, distance,
         <CardContent className="p-0">
           <div className="relative aspect-[3/4]">
             <Image
-              src={profileUser.avatarUrl ?? `https://picsum.photos/seed/${profileUser.userId}/600/800`}
+              src={
+                profileUser.avatarUrl ??
+                `https://picsum.photos/seed/${profileUser.userId}/600/800`
+              }
               alt={profileUser.id ?? 'User profile'}
               fill
               className="object-cover transition-transform duration-300 group-hover:scale-105"
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
             />
-             {matchScore && (
+            {matchScore !== undefined && (
               <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs font-bold py-1 px-2 rounded-full">
                 {matchScore}% Match
               </div>
@@ -108,26 +107,28 @@ export function ProfileCard({ user: profileUser, matchScore, isOnline, distance,
               aria-hidden="true"
             />
             <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <Button
-                    size="icon"
-                    variant="secondary"
-                    className={`rounded-full h-10 w-10 bg-black/50 text-white hover:bg-primary ${isFavorite ? 'text-red-500' : ''}`}
-                    onClick={handleToggleFavorite}
-                    disabled={!currentUser || currentUser.id === profileUser.userId}
-                    aria-label={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-                >
-                    <Heart className={`size-5 ${isFavorite ? 'fill-current' : ''}`} />
-                </Button>
-                <Button
-                    size="icon"
-                    variant="secondary"
-                    className="rounded-full h-10 w-10 bg-black/50 text-white hover:bg-primary"
-                    onClick={handleStartConversation}
-                    disabled={!currentUser || currentUser.id === profileUser.userId}
-                    aria-label="Send Message"
-                >
-                    <MessageCircle className="size-5" />
-                </Button>
+              <Button
+                size="icon"
+                variant="secondary"
+                className={`rounded-full h-10 w-10 bg-black/50 text-white hover:bg-primary ${
+                  isFavorite ? 'text-red-500' : ''
+                }`}
+                onClick={handleToggleFavorite}
+                disabled={!currentUser || currentUser.id === profileUser.userId}
+                aria-label={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+              >
+                <Heart className={`size-5 ${isFavorite ? 'fill-current' : ''}`} />
+              </Button>
+              <Button
+                size="icon"
+                variant="secondary"
+                className="rounded-full h-10 w-10 bg-black/50 text-white hover:bg-primary"
+                onClick={handleStartConversation}
+                disabled={!currentUser || currentUser.id === profileUser.userId}
+                aria-label="Send Message"
+              >
+                <MessageCircle className="size-5" />
+              </Button>
             </div>
             <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
               <div className="flex items-baseline gap-2">
@@ -135,20 +136,20 @@ export function ProfileCard({ user: profileUser, matchScore, isOnline, distance,
                 <p className="text-base">{profileUser.age}</p>
               </div>
               <div className="flex items-center gap-4 text-xs text-neutral-300 mt-1">
-                 {isOnline && (
-                    <div className='flex items-center gap-1.5'>
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                        </span>
-                        Online
-                    </div>
+                {isOnline && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                    </span>
+                    Online
+                  </div>
                 )}
                 {distance !== undefined && (
-                    <div className='flex items-center gap-1.5'>
-                        <MapPin className="size-3" />
-                        {distance.toFixed(1)} miles away
-                    </div>
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="size-3" />
+                    {distance.toFixed(1)} miles away
+                  </div>
                 )}
               </div>
             </div>

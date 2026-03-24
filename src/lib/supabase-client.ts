@@ -1,51 +1,45 @@
-"use client";
+'use client';
 
-import { createBrowserClient } from "@supabase/ssr";
+import { createBrowserClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
-/** camelCase key transformer — maps Supabase snake_case columns to Drizzle camelCase types */
-function toCamel(s: string): string {
-  return s.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
-}
+let _instance: SupabaseClient | null = null;
 
-function transformKeys(obj: unknown): unknown {
-  if (Array.isArray(obj)) return obj.map(transformKeys);
-  if (obj !== null && typeof obj === "object") {
-    return Object.fromEntries(
-      Object.entries(obj as Record<string, unknown>).map(([k, v]) => [
-        toCamel(k),
-        transformKeys(v),
-      ])
-    );
-  }
-  return obj;
-}
-
-export function createClient() {
-  const client = createBrowserClient(
+/** Singleton browser Supabase client — safe to call multiple times */
+export function createClient(): SupabaseClient {
+  if (_instance) return _instance;
+  _instance = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+  return _instance;
+}
 
-  // Wrap .from() to apply camelCase transformation on every response
-  const originalFrom = client.from.bind(client);
-  // @ts-expect-error — wrapping for key transform
-  client.from = (table: string) => {
-    const builder = originalFrom(table);
-    const originalSelect = builder.select.bind(builder);
-    // @ts-expect-error
-    builder.select = (...args: Parameters<typeof originalSelect>) => {
-      const query = originalSelect(...args);
-      const originalThen = query.then.bind(query);
-      // @ts-expect-error
-      query.then = (resolve: any, reject: any) =>
-        originalThen((result: any) => {
-          if (result?.data) result.data = transformKeys(result.data);
-          return resolve ? resolve(result) : result;
-        }, reject);
-      return query;
-    };
-    return builder;
-  };
+/** Convert snake_case keys to camelCase (for Supabase read results → Drizzle types) */
+function toCamel(s: string): string {
+  return s.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+}
 
-  return client;
+export function transformToCamel<T>(obj: unknown): T {
+  if (Array.isArray(obj)) return obj.map((item) => transformToCamel(item)) as unknown as T;
+  if (obj !== null && typeof obj === 'object') {
+    return Object.fromEntries(
+      Object.entries(obj as Record<string, unknown>).map(([k, v]) => [
+        toCamel(k),
+        transformToCamel(v),
+      ])
+    ) as T;
+  }
+  return obj as T;
+}
+
+/** Convert camelCase keys to snake_case (for Supabase write payloads) */
+function toSnake(s: string): string {
+  return s.replace(/([A-Z])/g, (c) => `_${c.toLowerCase()}`);
+}
+
+export function transformToSnake(obj: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(obj).map(([k, v]) => [toSnake(k), v])
+  );
 }

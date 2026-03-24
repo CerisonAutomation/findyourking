@@ -20,10 +20,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { Progress } from '@/components/ui/progress';
 import { Logo } from '@/components/logo';
-import {
-  OnboardingState,
-  onboardKing,
-} from '@/ai/flows/onboarding-flow';
+import { OnboardingState, onboardKing } from '@/ai/flows/onboarding-flow';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -76,15 +73,13 @@ export default function OnboardingPage() {
   };
 
   useEffect(() => {
-    if(user) handleInitialMessage();
-  }, [user]);
+    if (user) handleInitialMessage();
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (scrollAreaRef.current) {
       const viewport = scrollAreaRef.current.querySelector('div');
-      if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight;
-      }
+      if (viewport) viewport.scrollTop = viewport.scrollHeight;
     }
   }, [messages, isLoading]);
 
@@ -103,7 +98,6 @@ export default function OnboardingPage() {
         message: input,
         currentState: onboardingState,
       });
-
       if (response.response) {
         setMessages((prev) => [
           ...prev,
@@ -131,22 +125,22 @@ export default function OnboardingPage() {
     const supabase = createClient();
     try {
       const profileData = {
-        userId: user.id,
+        user_id: user.id,                         // ✅ snake_case
         id: onboardingState.id,
         age: onboardingState.age,
         location: onboardingState.location,
         height: onboardingState.height,
         interests: onboardingState.interests,
         bio: onboardingState.bio,
-        avatarUrl:
-          user.user_metadata.avatar_url ||
+        avatar_url:                               // ✅ snake_case
+          user.user_metadata?.avatar_url ??
           `https://picsum.photos/seed/${user.id}/600/800`,
         onboarded: true,
       };
-      
+
       const { error } = await supabase
         .from('profiles')
-        .upsert(profileData, { onConflict: 'userId' });
+        .upsert(profileData, { onConflict: 'user_id' }); // ✅ snake_case conflict target
 
       if (error) throw error;
 
@@ -154,11 +148,10 @@ export default function OnboardingPage() {
         description: 'Your profile is now live.',
       });
       router.push('/');
-    } catch (error: any) {
-        console.error('Submission Error:', error);
-      toast.error('Submission Error', {
-        description: error.message || 'Could not save your profile.',
-      });
+    } catch (error: unknown) {
+      console.error('Submission Error:', error);
+      const msg = error instanceof Error ? error.message : 'Could not save your profile.';
+      toast.error('Submission Error', { description: msg });
       setIsSubmitting(false);
     }
   };
@@ -183,9 +176,7 @@ export default function OnboardingPage() {
           </div>
 
           <div className="text-left mb-4">
-            <h1 className="text-3xl font-bold tracking-tight">
-              The Coronation Protocol
-            </h1>
+            <h1 className="text-3xl font-bold tracking-tight">The Coronation Protocol</h1>
             <p className="mt-1 text-muted-foreground">
               The AI King will forge your profile through conversation.
             </p>
@@ -204,9 +195,7 @@ export default function OnboardingPage() {
                     >
                       {m.role === 'assistant' && (
                         <Avatar>
-                          <AvatarFallback>
-                            <Crown />
-                          </AvatarFallback>
+                          <AvatarFallback><Crown /></AvatarFallback>
                         </Avatar>
                       )}
                       <div
@@ -216,30 +205,24 @@ export default function OnboardingPage() {
                             : 'bg-muted'
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">
-                          {m.content}
-                        </p>
+                        <p className="text-sm whitespace-pre-wrap">{m.content}</p>
                       </div>
                       {m.role === 'user' && (
                         <Avatar>
-                          <AvatarFallback>
-                            <User />
-                          </AvatarFallback>
+                          <AvatarFallback><User /></AvatarFallback>
                         </Avatar>
                       )}
                     </div>
                   ))}
                   {isLoading && (
-                     <div className="flex items-start gap-3">
-                        <Avatar>
-                          <AvatarFallback>
-                            <Crown />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="max-w-md bg-muted rounded-lg p-3 flex items-center">
-                            <Loader2 className="animate-spin size-5"/>
-                        </div>
-                     </div>
+                    <div className="flex items-start gap-3">
+                      <Avatar>
+                        <AvatarFallback><Crown /></AvatarFallback>
+                      </Avatar>
+                      <div className="max-w-md bg-muted rounded-lg p-3 flex items-center">
+                        <Loader2 className="animate-spin size-5" />
+                      </div>
+                    </div>
                   )}
                 </div>
               </ScrollArea>
@@ -250,12 +233,14 @@ export default function OnboardingPage() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     disabled={isLoading || isComplete}
+                    aria-label="Onboarding reply"
                   />
                   <Button
                     type="submit"
                     size="icon"
                     className="absolute right-2 top-1/2 -translate-y-1/2"
                     disabled={isLoading || isComplete}
+                    aria-label="Send reply"
                   >
                     <Send />
                   </Button>
@@ -265,37 +250,86 @@ export default function OnboardingPage() {
           </Card>
 
           {isComplete && (
-             <Button onClick={handleCoronation} disabled={isSubmitting} size="lg" className="mt-4 w-full">
-                {isSubmitting ? <Loader2 className="animate-spin" /> : <>Enter the Kingdom <Crown className="ml-2"/></>}
-              </Button>
+            <Button
+              onClick={handleCoronation}
+              disabled={isSubmitting}
+              size="lg"
+              className="mt-4 w-full"
+            >
+              {isSubmitting ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <>Enter the Kingdom <Crown className="ml-2" /></>
+              )}
+            </Button>
           )}
         </div>
+
         <div className="md:col-span-1 flex flex-col h-[85vh]">
           <h2 className="text-xl font-bold tracking-tight mb-4">Royal Decree</h2>
           <Card className="flex-1">
             <CardContent className="p-6 space-y-4 text-sm">
-                <div className="flex items-center gap-3"><User className="size-4 text-primary"/><strong className="w-20">King:</strong> <span className="text-muted-foreground">{onboardingState.id || '...'}</span></div>
-                <div className="flex items-center gap-3"><Sparkles className="size-4 text-primary"/><strong className="w-20">Age:</strong> <span className="text-muted-foreground">{onboardingState.age || '...'}</span></div>
-                <div className="flex items-center gap-3"><MapPin className="size-4 text-primary"/><strong className="w-20">Realm:</strong> <span className="text-muted-foreground">{onboardingState.location || '...'}</span></div>
-                <div className="flex items-center gap-3"><Scaling className="size-4 text-primary"/><strong className="w-20">Height:</strong> <span className="text-muted-foreground">{onboardingState.height ? `${onboardingState.height} cm` : '...'}</span></div>
-                <div className="flex items-center gap-3"><Briefcase className="size-4 text-primary"/><strong className="w-20">Vocation:</strong> <span className="text-muted-foreground">{onboardingState.job || '...'}</span></div>
-                <div className="flex items-center gap-3"><Paintbrush className="size-4 text-primary"/><strong className="w-20">Style:</strong> <span className="text-muted-foreground">{onboardingState.style || '...'}</span></div>
-                <div className="flex items-center gap-3"><Sparkle className="size-4 text-primary"/><strong className="w-20">Vibe:</strong> <span className="text-muted-foreground">{onboardingState.vibe || '...'}</span></div>
-                
-                <div className="space-y-2 pt-4">
-                    <div className="flex items-center gap-3"><BookText className="size-4 text-primary"/><strong>Proclamation:</strong></div>
-                    <p className="text-muted-foreground text-xs pl-7">{onboardingState.bio || 'The AI King will craft this based on your dialogue.'}</p>
+              <div className="flex items-center gap-3">
+                <User className="size-4 text-primary" />
+                <strong className="w-20">King:</strong>
+                <span className="text-muted-foreground">{onboardingState.id || '...'}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Sparkles className="size-4 text-primary" />
+                <strong className="w-20">Age:</strong>
+                <span className="text-muted-foreground">{onboardingState.age || '...'}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <MapPin className="size-4 text-primary" />
+                <strong className="w-20">Realm:</strong>
+                <span className="text-muted-foreground">{onboardingState.location || '...'}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Scaling className="size-4 text-primary" />
+                <strong className="w-20">Height:</strong>
+                <span className="text-muted-foreground">
+                  {onboardingState.height ? `${onboardingState.height} cm` : '...'}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Briefcase className="size-4 text-primary" />
+                <strong className="w-20">Vocation:</strong>
+                <span className="text-muted-foreground">{onboardingState.job || '...'}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Paintbrush className="size-4 text-primary" />
+                <strong className="w-20">Style:</strong>
+                <span className="text-muted-foreground">{onboardingState.style || '...'}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Sparkle className="size-4 text-primary" />
+                <strong className="w-20">Vibe:</strong>
+                <span className="text-muted-foreground">{onboardingState.vibe || '...'}</span>
+              </div>
+              <div className="space-y-2 pt-4">
+                <div className="flex items-center gap-3">
+                  <BookText className="size-4 text-primary" />
+                  <strong>Proclamation:</strong>
                 </div>
-
-                <div className="space-y-2 pt-4">
-                    <div className="flex items-center gap-3"><Crown className="size-4 text-primary"/><strong>Passions:</strong></div>
-                    <div className="flex flex-wrap gap-2 pl-7">
-                        {onboardingState.interests.length > 0 ? onboardingState.interests.map(interest => (
-                            <Badge key={interest} variant="secondary">{interest}</Badge>
-                        )) : <p className="text-muted-foreground text-xs">Awaiting your word...</p>}
-                    </div>
+                <p className="text-muted-foreground text-xs pl-7">
+                  {onboardingState.bio || 'The AI King will craft this based on your dialogue.'}
+                </p>
+              </div>
+              <div className="space-y-2 pt-4">
+                <div className="flex items-center gap-3">
+                  <Crown className="size-4 text-primary" />
+                  <strong>Passions:</strong>
                 </div>
-
+                <div className="flex flex-wrap gap-2 pl-7">
+                  {onboardingState.interests.length > 0 ? (
+                    onboardingState.interests.map((interest) => (
+                      <Badge key={interest} variant="secondary">{interest}</Badge>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-xs">Awaiting your word...</p>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

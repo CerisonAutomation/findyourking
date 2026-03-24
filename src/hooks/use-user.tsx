@@ -1,52 +1,61 @@
 'use client';
 
-import { useEffect, useState, createContext, useContext, ReactNode } from 'react';
-import { createClient } from '@/lib/supabase-client';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  type ReactNode,
+} from 'react';
 import type { User } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase-client';
 
-interface UserContextType {
+interface UserContextValue {
   user: User | null;
   isLoading: boolean;
+  /** Force re-fetch the auth user (e.g. after profile update) */
+  refresh: () => Promise<void>;
 }
 
-const UserContext = createContext<UserContextType | undefined>(undefined);
+const UserContext = createContext<UserContextValue | undefined>(undefined);
 
-export const UserProvider = ({ children }: { children: ReactNode }) => {
+export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = createClient(); // singleton — safe
+
+  const refresh = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user ?? null);
+  }, [supabase]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
+    // getUser() hits the auth server — cryptographically verified (unlike getSession)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user ?? null);
       setIsLoading(false);
     });
 
-    // Fetch initial session
-    const getSession = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
         setUser(session?.user ?? null);
         setIsLoading(false);
-    }
-    getSession();
+      }
+    );
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase.auth]);
+    return () => subscription.unsubscribe();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const value = {
-    user,
-    isLoading,
-  };
+  return (
+    <UserContext.Provider value={{ user, isLoading, refresh }}>
+      {children}
+    </UserContext.Provider>
+  );
+}
 
-  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
-};
-
-export const useUser = (): UserContextType => {
-  const context = useContext(UserContext);
-  if (context === undefined) {
-    throw new Error('useUser must be used within a UserProvider');
-  }
-  return context;
-};
+export function useUser(): UserContextValue {
+  const ctx = useContext(UserContext);
+  if (!ctx) throw new Error('useUser must be used inside <UserProvider>');
+  return ctx;
+}
