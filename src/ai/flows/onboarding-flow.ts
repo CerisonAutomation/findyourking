@@ -17,12 +17,34 @@ export const OnboardingStateSchema = z.object({
   location: z.string().nullable().describe("The user's city and country."),
   height: z.number().nullable().describe('The height of the user in centimeters.'),
   job: z.string().nullable().describe("The user's profession."),
-  style: z.string().nullable().describe('The personal fashion style of the user (e.g., minimalist, streetwear).'),
-  vibe: z.string().nullable().describe('The general personality vibe of the user (e.g., ambitious, creative).'),
+  style: z
+    .string()
+    .nullable()
+    .describe('The personal fashion style of the user (e.g., minimalist, streetwear).'),
+  vibe: z
+    .string()
+    .nullable()
+    .describe('The general personality vibe of the user (e.g., ambitious, creative).'),
   interests: z.array(z.string()).describe("A list of the user's interests or hobbies."),
-  bio: z.string().nullable().describe('A compelling, well-written, and sophisticated dating profile bio.'),
+  bio: z
+    .string()
+    .nullable()
+    .describe('A compelling, well-written, and sophisticated dating profile bio.'),
 });
 export type OnboardingState = z.infer<typeof OnboardingStateSchema>;
+
+// ✅ Exported so onboarding page can reference it without re-declaring
+export const initialOnboardingState: OnboardingState = {
+  id: null,
+  age: null,
+  location: null,
+  height: null,
+  job: null,
+  style: null,
+  vibe: null,
+  interests: [],
+  bio: null,
+};
 
 const OnboardKingInputSchema = z.object({
   userId: z.string(),
@@ -31,44 +53,45 @@ const OnboardKingInputSchema = z.object({
 });
 
 export const OnboardKingOutputSchema = z.object({
-  response: z.string().describe('The AI King\'s reply to the user.'),
+  response: z.string().describe("The AI King's reply to the user."),
   updatedState: OnboardingStateSchema.describe(
-    'The updated profile state after processing the user\'s message.'
+    "The updated profile state after processing the user's message."
   ),
-  isComplete: z.boolean().describe('Whether all required onboarding fields are now filled.'),
+  isComplete: z
+    .boolean()
+    .describe('Whether all required onboarding fields are now filled.'),
 });
 export type OnboardKingOutput = z.infer<typeof OnboardKingOutputSchema>;
 
-// This is the tool the AI will use to figure out what to ask next.
 const getMissingFieldsTool = ai.defineTool(
   {
     name: 'getMissingOnboardingFields',
-    description: 'Call this to determine which onboarding questions still need to be asked. Returns a list of fields that are still null or empty.',
+    description:
+      'Call this to determine which onboarding questions still need to be asked. Returns a list of fields that are still null or empty.',
     inputSchema: OnboardingStateSchema,
     outputSchema: z.array(z.string()),
   },
   async (state) => {
     const missingFields: string[] = [];
     for (const key in state) {
-        const value = state[key as keyof OnboardingState];
-        if (value === null || (Array.isArray(value) && value.length === 0)) {
-            missingFields.push(key);
-        }
+      const value = state[key as keyof OnboardingState];
+      if (value === null || (Array.isArray(value) && value.length === 0)) {
+        missingFields.push(key);
+      }
     }
-    // Don't ask for bio until other fields are filled
     if (missingFields.length > 1 && missingFields.includes('bio')) {
-        return missingFields.filter(f => f !== 'bio');
+      return missingFields.filter((f) => f !== 'bio');
     }
     return missingFields;
   }
 );
 
 const onboardingPrompt = ai.definePrompt({
-    name: 'onboardingPrompt',
-    tools: [getMissingFieldsTool],
-    input: { schema: OnboardKingInputSchema },
-    output: { schema: OnboardKingOutputSchema },
-    prompt: `You are the AI King, a master wordsmith for the luxury gay dating app, FYKING.MEN. Your task is to onboard a new user by having a conversation with them to build their profile.
+  name: 'onboardingPrompt',
+  tools: [getMissingFieldsTool],
+  input: { schema: OnboardKingInputSchema },
+  output: { schema: OnboardKingOutputSchema },
+  prompt: `You are the AI King, a master wordsmith for the luxury gay dating app, FYKING.MEN. Your task is to onboard a new user by having a conversation with them to build their profile.
 
 You will be given the user's message and their current profile state. Your goal is to fill in all the fields in the state.
 
@@ -102,13 +125,8 @@ export async function onboardKing(
     throw new Error('The AI King is currently holding court and cannot be disturbed.');
   }
 
-  // Ensure all fields are at least null
-  const finalState = { ...initialOnboardingState, ...output.updatedState };
-  for (const key in initialOnboardingState) {
-    if (!(key in finalState)) {
-      (finalState as any)[key] = null;
-    }
-  }
+  // ✅ initialOnboardingState now defined above — no more ReferenceError
+  const finalState: OnboardingState = { ...initialOnboardingState, ...output.updatedState };
 
   const isComplete = !Object.values(finalState).some(
     (value) => value === null || (Array.isArray(value) && value.length === 0)
