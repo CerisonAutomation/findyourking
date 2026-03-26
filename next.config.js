@@ -67,12 +67,8 @@ const nextConfig = {
     // TODO: remove once all type errors are resolved
     ignoreBuildErrors: true,
   },
-
-  // ─── ESLint ──────────────────────────────────────────────────────────────────
-  eslint: {
-    // Prevent ESLint from blocking production builds
-    ignoreDuringBuilds: true,
-  },
+  // NOTE: eslint.ignoreDuringBuilds was removed — Next.js 16 no longer supports
+  // the eslint key in next.config.js. Use --no-lint flag in build scripts if needed.
 };
 
 module.exports = nextConfig;

@@ -1,6 +1,7 @@
 /* Tailwind v4 — single import directive replaces @tailwind base/components/utilities */
 @import "tailwindcss";
-@import "tailwindcss-animate";
+/* tailwindcss-animate must be loaded as a Tailwind v4 plugin, NOT @import */
+@plugin "tailwindcss-animate";
 
 @layer base {
   :root {
