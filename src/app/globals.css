@@ -3,61 +3,71 @@
 /* tailwindcss-animate must be loaded as a Tailwind v4 plugin, NOT @import */
 @plugin "tailwindcss-animate";
 
-@layer base {
-  :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+/**
+ * Tailwind v4: CSS custom properties must be registered under @theme inline
+ * using the --color-* namespace so they become available as utility classes:
+ * border-border → var(--color-border)
+ * bg-background → var(--color-background)
+ * text-foreground → var(--color-foreground)
+ * etc.
+ */
+@theme inline {
+  --color-background:        hsl(240 10% 3.9%);
+  --color-foreground:        hsl(0 0% 98%);
 
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
+  --color-card:              hsl(240 10% 3.9%);
+  --color-card-foreground:   hsl(0 0% 98%);
 
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
+  --color-popover:           hsl(240 10% 3.9%);
+  --color-popover-foreground: hsl(0 0% 98%);
 
-    --primary: 330 85% 60%;
-    --primary-foreground: 0 0% 98%;
+  --color-primary:           hsl(330 85% 60%);
+  --color-primary-foreground: hsl(0 0% 98%);
 
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
+  --color-secondary:         hsl(240 3.7% 15.9%);
+  --color-secondary-foreground: hsl(0 0% 98%);
 
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+  --color-muted:             hsl(240 3.7% 15.9%);
+  --color-muted-foreground:  hsl(240 5% 64.9%);
 
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+  --color-accent:            hsl(240 3.7% 15.9%);
+  --color-accent-foreground: hsl(0 0% 98%);
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+  --color-destructive:       hsl(0 62.8% 30.6%);
+  --color-destructive-foreground: hsl(0 0% 98%);
 
-    --border: 330 85% 60%;
-    --input: 240 3.7% 15.9%;
-    --ring: 330 85% 70%;
+  --color-border:            hsl(330 85% 60%);
+  --color-input:             hsl(240 3.7% 15.9%);
+  --color-ring:              hsl(330 85% 70%);
 
-    --radius: 0.75rem;
-  }
+  --radius: 0.75rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
 
-  /* Dark is the default theme — keep identical for now */
-  .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 330 85% 60%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 330 85% 60%;
-    --input: 240 3.7% 15.9%;
-    --ring: 330 85% 70%;
-  }
+/* Dark theme overrides — update @theme tokens for dark mode */
+.dark {
+  --color-background:        hsl(240 10% 3.9%);
+  --color-foreground:        hsl(0 0% 98%);
+  --color-card:              hsl(240 10% 3.9%);
+  --color-card-foreground:   hsl(0 0% 98%);
+  --color-popover:           hsl(240 10% 3.9%);
+  --color-popover-foreground: hsl(0 0% 98%);
+  --color-primary:           hsl(330 85% 60%);
+  --color-primary-foreground: hsl(0 0% 98%);
+  --color-secondary:         hsl(240 3.7% 15.9%);
+  --color-secondary-foreground: hsl(0 0% 98%);
+  --color-muted:             hsl(240 3.7% 15.9%);
+  --color-muted-foreground:  hsl(240 5% 64.9%);
+  --color-accent:            hsl(240 3.7% 15.9%);
+  --color-accent-foreground: hsl(0 0% 98%);
+  --color-destructive:       hsl(0 62.8% 30.6%);
+  --color-destructive-foreground: hsl(0 0% 98%);
+  --color-border:            hsl(330 85% 60%);
+  --color-input:             hsl(240 3.7% 15.9%);
+  --color-ring:              hsl(330 85% 70%);
 }
 
 @layer base {
@@ -94,8 +104,8 @@
 @layer utilities {
   .bg-grid {
     background-image:
-      linear-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px),
-      linear-gradient(to right, hsl(var(--primary) / 0.1) 1px, transparent 1px);
+      linear-gradient(color-mix(in srgb, var(--color-primary) 10%, transparent) 1px, transparent 1px),
+      linear-gradient(to right, color-mix(in srgb, var(--color-primary) 10%, transparent) 1px, transparent 1px);
     background-size: 3rem 3rem;
   }
 }
