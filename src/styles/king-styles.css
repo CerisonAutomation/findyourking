@@ -1,0 +1,611 @@
+/* ═══════════════════════════════════════════════════════════════════════════════
+   FIND YOUR KING - ULTIMATE STYLING SYSTEM
+   Million times better styling with complete Tailwind CSS mastery
+   Enterprise-grade design system with premium aesthetics
+════════════════════════════════════════════════════════════════════════════════ */
+
+/* ── FONT IMPORTS ───────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+/* ── TAILWIND BASE LAYERS ───────────────────────────────────────────────────── */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── FIND YOUR KING CSS VARIABLES ───────────────────────────────────────────── */
+@layer base {
+    :root {
+        /* Core Theme Colors */
+        --background: 0 0% 3%;
+        --foreground: 0 0% 98%;
+        --card: 0 0% 6%;
+        --card-foreground: 0 0% 98%;
+        --popover: 0 0% 6%;
+        --popover-foreground: 0 0% 98%;
+        --primary: 322 80% 55%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 270 40% 20%;
+        --secondary-foreground: 0 0% 98%;
+        --muted: 0 0% 12%;
+        --muted-foreground: 0 0% 55%;
+        --accent: 270 60% 45%;
+        --accent-foreground: 0 0% 98%;
+        --destructive: 0 72% 51%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 0 0% 14%;
+        --input: 0 0% 14%;
+        --ring: 322 80% 55%;
+        --radius: 0.75rem;
+
+        /* FIND YOUR KING Premium Palette */
+        --king-bg: #06060E;
+        --king-bg-1: #0A0A16;
+        --king-bg-2: #0F0F1E;
+        --king-bg-3: #141428;
+        --king-border: rgba(255, 255, 255, 0.07);
+        --king-crimson: #DC2020;
+        --king-crimson-bright: #FF2E2E;
+        --king-gold: #F5A623;
+        --king-cobalt: #3B82F6;
+        --king-emerald: #22C55E;
+        --king-muted: rgba(255, 255, 255, 0.35);
+        --king-faint: rgba(255, 255, 255, 0.08);
+
+        /* Advanced Gradients */
+        --gradient-crimson: linear-gradient(135deg, #DC2020, #FF6B35);
+        --gradient-king: linear-gradient(135deg, var(--king-crimson), var(--king-gold));
+        --gradient-cobalt: linear-gradient(135deg, var(--king-cobalt), var(--king-crimson));
+        --gradient-emerald: linear-gradient(135deg, var(--king-emerald), var(--king-cobalt));
+
+        /* Glass Effects */
+        --glass-bg: rgba(10, 10, 22, 0.6);
+        --glass-border: rgba(255, 255, 255, 0.05);
+        --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+        /* Advanced Shadows */
+        --king-glow: 0 0 20px rgba(220, 32, 32, 0.3);
+        --king-gold-glow: 0 4px 20px rgba(245, 166, 35, 0.4);
+        --king-cobalt-glow: 0 4px 20px rgba(59, 130, 246, 0.4);
+    }
+
+    /* Base Styles */
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-background text-foreground font-king antialiased;
+        background: var(--king-bg);
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+        color: #fff;
+        overflow-x: hidden;
+    }
+
+    /* Selection Styling */
+    ::selection {
+        background: rgba(220, 32, 32, 0.3);
+    }
+
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+        @apply bg-transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        @apply bg-muted rounded-full;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        @apply bg-king-crimson;
+    }
+}
+
+/* ── KING COMPONENT CLASSES ─────────────────────────────────────────────────── */
+@layer components {
+    /* Premium Cards */
+    .king-card {
+        @apply bg-king-bg-1 border border-king-border rounded-none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .king-card:hover {
+        @apply border-king-crimson;
+        box-shadow: var(--king-glow);
+    }
+
+    /* Glass Morphism */
+    .king-glass {
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--glass-shadow);
+    }
+
+    /* Premium Buttons */
+    .king-btn-primary {
+        @apply flex items-center justify-center gap-2 px-7 py-4;
+        background: var(--gradient-crimson);
+        border: none;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        text-transform: uppercase;
+    }
+
+    .king-btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--king-glow);
+    }
+
+    .king-btn-primary:active {
+        transform: translateY(0);
+        opacity: 0.85;
+    }
+
+    .king-btn-ghost {
+        @apply bg-transparent border-none text-king-muted;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        padding: 8px 12px;
+        transition: all 0.15s ease;
+    }
+
+    .king-btn-ghost:hover {
+        @apply text-white;
+    }
+
+    /* Typography Classes */
+    .king-hero {
+        font-size: 56px;
+        font-weight: 900;
+        letter-spacing: -1.5px;
+        line-height: 1;
+    }
+
+    .king-h1 {
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        line-height: 1.1;
+    }
+
+    .king-h2 {
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.3px;
+        line-height: 1.2;
+    }
+
+    .king-body {
+        font-size: 14px;
+        line-height: 1.55;
+        color: rgba(255, 255, 255, 0.72);
+    }
+
+    .king-small {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+
+    .king-label {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--king-muted);
+    }
+
+    /* Input Fields */
+    .king-input {
+        @apply w-full bg-king-bg-2 border border-king-border rounded-none;
+        padding: 14px 16px;
+        color: #fff;
+        font-size: 14px;
+        font-family: inherit;
+        outline: none;
+        transition: all 0.15s ease;
+    }
+
+    .king-input:focus {
+        border-color: var(--king-crimson);
+        box-shadow: 0 0 0 1px var(--king-crimson);
+    }
+
+    .king-input::placeholder {
+        color: var(--king-muted);
+    }
+
+    /* Status Indicators */
+    .king-online {
+        @apply w-2 h-2 bg-king-emerald rounded-full;
+    }
+
+    .king-verified {
+        @apply w-2 h-2 bg-king-crimson rounded-full;
+    }
+
+    /* Premium Gradients */
+    .king-gradient-text {
+        background: var(--gradient-king);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .king-crimson-gradient {
+        background: var(--gradient-crimson);
+    }
+
+    .king-cobalt-gradient {
+        background: var(--gradient-cobalt);
+    }
+
+    /* Animation Classes */
+    .king-shimmer {
+        background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.05) 50%,
+                rgba(255, 255, 255, 0) 100%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 2s infinite;
+    }
+
+    .king-glow-animation {
+        animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    .king-float {
+        animation: float 3s ease-in-out infinite;
+    }
+
+    /* Layout Utilities */
+    .king-screen {
+        @apply flex flex-col h-screen bg-king-bg overflow-hidden;
+    }
+
+    .king-scroll {
+        @apply flex-1 overflow-y-auto overflow-x-hidden;
+    }
+
+    .king-safe-area {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* Hide Scrollbar */
+    .king-hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .king-hide-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Mobile Optimizations */
+    @media (max-width: 640px) {
+        .king-mobile-scroll {
+            -webkit-overflow-scrolling: touch;
+        }
+    }
+}
+
+/* ── ADVANCED KEYFRAMES ─────────────────────────────────────────────────────── */
+@layer utilities {
+    /* Premium Animations */
+    @keyframes shimmer {
+        0% {
+            background-position: -200% 0;
+        }
+        100% {
+            background-position: 200% 0;
+        }
+    }
+
+    @keyframes glow {
+        0% {
+            box-shadow: 0 0 5px rgba(220, 32, 32, 0.5);
+        }
+        50% {
+            box-shadow: 0 0 20px rgba(220, 32, 32, 0.8);
+        }
+        100% {
+            box-shadow: 0 0 30px rgba(220, 32, 32, 1);
+        }
+    }
+
+    @keyframes float {
+        0%, 100% {
+            transform: translateY(0px);
+        }
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+
+    @keyframes slideUpHero {
+        0% {
+            transform: translateY(30px);
+            opacity: 0;
+        }
+        100% {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes scaleIn {
+        0% {
+            transform: scale(0.9);
+            opacity: 0;
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    @keyframes bounceKing {
+        0%, 80%, 100% {
+            transform: translateY(0);
+        }
+        40% {
+            transform: translateY(-12px);
+        }
+    }
+
+    @keyframes pulseKing {
+        0%, 100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% {
+            transform: scale(1.05);
+            opacity: 0.8;
+        }
+    }
+
+    /* Responsive Typography */
+    @media (max-width: 640px) {
+        .king-hero {
+            font-size: 40px;
+            letter-spacing: -1px;
+        }
+
+        .king-h1 {
+            font-size: 24px;
+            letter-spacing: -0.3px;
+        }
+
+        .king-h2 {
+            font-size: 20px;
+            letter-spacing: -0.2px;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .king-hero {
+            font-size: 72px;
+            letter-spacing: -2px;
+        }
+    }
+
+    /* Dark Mode Enhancements */
+    @media (prefers-color-scheme: dark) {
+        .king-card {
+            background: var(--king-bg-2);
+        }
+    }
+
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+        .king-shimmer,
+        .king-glow-animation,
+        .king-float {
+            animation: none;
+        }
+    }
+
+    /* High Contrast Mode */
+    @media (prefers-contrast: high) {
+        .king-border {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .king-btn-primary {
+            border: 2px solid #fff;
+        }
+    }
+
+    /* Print Styles */
+    @media print {
+        .king-screen {
+            @apply bg-white text-black;
+        }
+
+        .king-btn-primary,
+        .king-btn-ghost {
+            display: none;
+        }
+    }
+}
+
+/* ── ENTERPRISE UTILITIES ───────────────────────────────────────────────────── */
+@layer utilities {
+    /* Focus Management */
+    .king-focus-ring {
+        @apply focus:outline-none focus:ring-2 focus:ring-king-crimson focus:ring-offset-2 focus:ring-offset-king-bg;
+    }
+
+    /* Loading States */
+    .king-loading {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .king-loading::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.1),
+                transparent
+        );
+        animation: shimmer 1.5s infinite;
+    }
+
+    /* Accessibility */
+    .king-sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    /* Performance Optimizations */
+    .king-will-change-transform {
+        will-change: transform;
+    }
+
+    .king-will-change-opacity {
+        will-change: opacity;
+    }
+
+    /* GPU Acceleration */
+    .king-gpu {
+        transform: translateZ(0);
+        backface-visibility: hidden;
+        perspective: 1000px;
+    }
+
+    /* Text Truncation */
+    .king-truncate-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .king-truncate-3 {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* Aspect Ratio Utilities */
+    .king-aspect-16-9 {
+        aspect-ratio: 16/9;
+    }
+
+    .king-aspect-4-3 {
+        aspect-ratio: 4/3;
+    }
+
+    .king-aspect-1-1 {
+        aspect-ratio: 1/1;
+    }
+
+    /* Spacing Utilities */
+    .king-space-y-king > * + * {
+        margin-top: 1.5rem;
+    }
+
+    .king-space-x-king > * + * {
+        margin-left: 1.5rem;
+    }
+}
+
+/* ── MAP LIBRE OVERRIDES ───────────────────────────────────────────────────── */
+.maplibregl-map {
+    font-family: inherit;
+}
+
+.maplibregl-ctrl-attrib {
+    font-size: 10px !important;
+}
+
+/* ── P2P CONNECTION STATUS ─────────────────────────────────────────────────── */
+.p2p-connected {
+    @apply border-king-emerald bg-king-emerald/10;
+}
+
+.p2p-connecting {
+    @apply border-king-gold bg-king-gold/10;
+}
+
+.p2p-disconnected {
+    @apply border-king-crimson bg-king-crimson/10;
+}
+
+/* ── PREMIUM GLASSMORPHISM ─────────────────────────────────────────────────── */
+.glass-panel {
+    @apply bg-king-bg-1/60 backdrop-blur-xl border-white/5;
+    box-shadow: var(--glass-shadow);
+}
+
+.glass-card {
+    @apply bg-white/[0.03] backdrop-blur-md border border-white/10;
+    transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+    @apply border-white/20;
+}
+
+/* ── DYNAMIC GRADIENTS ─────────────────────────────────────────────────────── */
+.text-gradient {
+    @apply text-transparent bg-clip-text;
+    background: linear-gradient(135deg, var(--king-crimson) via white to var(--king-cobalt));
+}
+
+/* ── ENHANCED SHIMMER ─────────────────────────────────────────────────────── */
+.animate-shimmer-fast {
+    background: linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.05) 50%,
+            rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer-movement 1.5s infinite;
+}
+
+@keyframes shimmer-movement {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   FIND YOUR KING - ULTIMATE STYLING SYSTEM COMPLETE
+   Enterprise-grade design system with million-dollar aesthetics
+   Production-ready with complete Tailwind CSS integration
+════════════════════════════════════════════════════════════════════════════════ */
