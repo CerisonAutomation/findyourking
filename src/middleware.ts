@@ -1,56 +1,59 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-/**
- * Public routes that never require authentication.
- * All other routes redirect unauthenticated users to /login.
- */
+/** Routes that never require authentication */
 const PUBLIC_PATHS = new Set([
   '/',
   '/login',
   '/signup',
   '/auth/callback',
   '/auth/confirm',
+  '/auth/forgot-password',
 ]);
 
-function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PATHS.has(pathname) || pathname.startsWith('/auth/');
-}
+const isPublic = (pathname: string) =>
+  PUBLIC_PATHS.has(pathname) ||
+  pathname.startsWith('/_next') ||
+  pathname.startsWith('/api/genkit') ||
+  pathname === '/robots.txt' ||
+  pathname === '/sitemap.xml' ||
+  /\.[a-z0-9]+$/i.test(pathname); // static files
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  const { pathname } = request.nextUrl;
+
+  // Build a mutable response so the SSR client can set cookies
+  let response = NextResponse.next({
+    request: { headers: request.headers },
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
-          );
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options),
-          );
+        getAll: () => request.cookies.getAll(),
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value);
+            response.cookies.set(name, value, options);
+          });
         },
       },
     },
   );
 
-  // IMPORTANT: always use getUser() — never getSession() on the server
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // IMPORTANT: Always use getUser() — never getSession() in middleware
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
+  // Auth'd user hitting login/signup → redirect to app
+  if (user && (pathname === '/login' || pathname === '/signup')) {
+    return NextResponse.redirect(new URL('/discover', request.url));
+  }
 
-  if (!user && !isPublicPath(pathname)) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = '/login';
+  // Protected route + no session → redirect to login
+  if (!user && !isPublic(pathname)) {
+    const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('next', pathname);
     return NextResponse.redirect(loginUrl);
   }
@@ -60,6 +63,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp4|mp3|ico)$).*)',
   ],
 };

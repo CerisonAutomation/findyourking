@@ -2,16 +2,12 @@
 
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { type ReactNode, useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { makeQueryClient } from '@/lib/query-client';
 
-/**
- * Wraps the app with TanStack Query.
- * Uses `useState` so each React tree gets a stable, isolated QueryClient.
- */
 export function QueryProvider({ children }: { children: ReactNode }) {
+  // useState with factory fn — creates exactly one QC per component mount (no singleton bug)
   const [queryClient] = useState(() => makeQueryClient());
-
   return (
     <QueryClientProvider client={queryClient}>
       {children}

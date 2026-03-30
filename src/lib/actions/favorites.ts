@@ -2,70 +2,37 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
 
-const FavoriteSchema = z.object({
-  targetUserId: z.string().uuid(),
-});
-
-export type ActionResult =
-  | { success: true }
-  | { success: false; error: string };
-
-/**
- * Add a user to the current user's favorites.
- */
-export async function addFavorite(targetUserId: string): Promise<ActionResult> {
-  const parsed = FavoriteSchema.safeParse({ targetUserId });
-  if (!parsed.success) return { success: false, error: 'Invalid user ID' };
-
+export async function addFavorite(favoritedUserId: string) {
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
 
-  if (authError || !user) return { success: false, error: 'Unauthorized' };
-  if (user.id === targetUserId) return { success: false, error: 'Cannot favorite yourself' };
+  const { error } = await supabase
+    .from('favorites')
+    .insert({ user_id: user.id, favorited_user_id: favoritedUserId });
 
-  const { error } = await supabase.from('favorites').insert({
-    user_id: user.id,
-    favorited_user_id: parsed.data.targetUserId,
-  });
-
-  if (error) return { success: false, error: error.message };
+  if (error && error.code !== '23505') {
+    return { error: error.message };
+  }
 
   revalidatePath('/favorites');
-  revalidatePath('/discover');
   return { success: true };
 }
 
-/**
- * Remove a user from the current user's favorites.
- */
-export async function removeFavorite(
-  targetUserId: string,
-): Promise<ActionResult> {
-  const parsed = FavoriteSchema.safeParse({ targetUserId });
-  if (!parsed.success) return { success: false, error: 'Invalid user ID' };
-
+export async function removeFavorite(favoritedUserId: string) {
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) return { success: false, error: 'Unauthorized' };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
 
   const { error } = await supabase
     .from('favorites')
     .delete()
     .eq('user_id', user.id)
-    .eq('favorited_user_id', parsed.data.targetUserId);
+    .eq('favorited_user_id', favoritedUserId);
 
-  if (error) return { success: false, error: error.message };
+  if (error) return { error: error.message };
 
   revalidatePath('/favorites');
-  revalidatePath('/discover');
   return { success: true };
 }

@@ -1,26 +1,29 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
-import { createServerSupabaseClient } from '@/lib/supabase-server';
+import Link from 'next/link';
+import { Logo } from '@/components/logo';
 import { LoginForm } from './login-form';
 
 export const metadata: Metadata = {
   title: 'Sign In',
   description: 'Sign in to Find Your King.',
+  robots: { index: false, follow: false },
 };
 
-export default async function LoginPage() {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) redirect('/discover');
-
+export default function LoginPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center p-4 bg-background">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="space-y-1 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
-          <p className="text-sm text-muted-foreground">Sign in to your kingdom</p>
+    <main className="min-h-svh flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm space-y-8">
+        <div className="flex flex-col items-center gap-3">
+          <Logo className="size-12" />
+          <h1 className="text-2xl font-bold tracking-tight">Welcome back, King</h1>
+          <p className="text-sm text-muted-foreground">Sign in to your account to continue</p>
         </div>
         <LoginForm />
+        <p className="text-center text-xs text-muted-foreground">
+          By signing in you agree to our{' '}
+          <Link href="/legal/terms" className="underline underline-offset-4 hover:text-primary">Terms</Link>{' '}and{' '}
+          <Link href="/legal/privacy" className="underline underline-offset-4 hover:text-primary">Privacy Policy</Link>.
+        </p>
       </div>
     </main>
   );

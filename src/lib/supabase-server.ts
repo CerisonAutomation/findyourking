@@ -1,5 +1,5 @@
 /**
  * @deprecated Import from `@/lib/supabase/server` instead.
- * This re-export exists only for backwards-compat during migration.
+ * This file exists only for backward-compatibility during migration.
  */
-export { createClient as createServerSupabaseClient } from '@/lib/supabase/server';
+export { createClient } from '@/lib/supabase/server';

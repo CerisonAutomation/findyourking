@@ -1,7 +1,7 @@
 'use client';
 
-import { use, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, MoreVertical, Paperclip, Send, Loader2 } from 'lucide-react';
+import { use, useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowLeft, MoreVertical, Paperclip, Send, Loader2, Crown } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { useUser } from '@/hooks/use-user';
 import type { UserProfile, Message } from '@/lib/types';
 import { formatDistanceToNowStrict } from 'date-fns';
-import { createClient, transformToCamel } from '@/lib/supabase-client';
+import { createClient, transformToCamel } from '@/lib/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -19,42 +19,66 @@ async function fetchInitialMessages(conversationId: string): Promise<Message[]> 
   const { data, error } = await supabase
     .from('messages')
     .select('*')
-    .eq('conversation_id', conversationId)  // ✅ snake_case
+    .eq('conversation_id', conversationId)
     .order('created_at', { ascending: true });
-  if (error) {
-    console.error('Error fetching messages', error);
-    return [];
-  }
+  if (error) return [];
   return (data ?? []).map((row) => transformToCamel<Message>(row));
+}
+
+async function fetchOrCreateConversation(
+  myId: string,
+  otherId: string,
+): Promise<string> {
+  const supabase = createClient();
+  // Look for existing
+  const { data } = await supabase
+    .from('conversations')
+    .select('id')
+    .or(
+      `and(participant_one.eq.${myId},participant_two.eq.${otherId}),` +
+      `and(participant_one.eq.${otherId},participant_two.eq.${myId})`,
+    )
+    .single();
+  if (data?.id) return data.id;
+  // Create new
+  const { data: created, error } = await supabase
+    .from('conversations')
+    .insert({ participant_one: myId, participant_two: otherId })
+    .select('id')
+    .single();
+  if (error) throw new Error(error.message);
+  return created.id;
 }
 
 async function fetchOtherUser(otherUserUid: string): Promise<UserProfile | null> {
   const supabase = createClient();
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from('profiles')
     .select('*')
-    .eq('user_id', otherUserUid)           // ✅ snake_case
+    .eq('user_id', otherUserUid)
     .single();
-  if (error) {
-    console.error('Failed to fetch other user profile', error);
-    return null;
-  }
   return data ? transformToCamel<UserProfile>(data) : null;
 }
 
 export default function ChatPage({ params }: { params: Promise<{ userId: string }> }) {
-  // Next.js 15: params is a Promise
   const { userId: otherUserUid } = use(params);
   const { user } = useUser();
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const supabase = createClient();
   const queryClient = useQueryClient();
+  const supabase = createClient();
 
-  // Deterministic conversation ID — same for both participants
-  const conversationId = user ? [user.id, otherUserUid].sort().join('_') : null;
+  // Resolve or create conversation
+  useEffect(() => {
+    if (!user?.id || !otherUserUid) return;
+    fetchOrCreateConversation(user.id, otherUserUid)
+      .then(setConversationId)
+      .catch(() => toast.error('Could not open conversation'));
+  }, [user?.id, otherUserUid]);
 
   const { data: otherUser, isLoading: isProfileLoading } = useQuery({
     queryKey: ['chatUser', otherUserUid],
@@ -62,173 +86,164 @@ export default function ChatPage({ params }: { params: Promise<{ userId: string 
     enabled: !!otherUserUid,
   });
 
-  const { data: messages, isLoading: isMessagesLoading } = useQuery({
+  const { data: messages = [], isLoading: isMessagesLoading } = useQuery({
     queryKey: ['messages', conversationId],
     queryFn: () => fetchInitialMessages(conversationId!),
     enabled: !!conversationId,
   });
 
-  // Realtime subscription
+  // Realtime subscription — Postgres changes (more reliable than broadcast for persistence)
   useEffect(() => {
     if (!conversationId || !user) return;
-
-    const channel = supabase.channel(`chat:${conversationId}`);
-    channel
-      .on('broadcast', { event: 'message' }, (payload) => {
-        queryClient.setQueryData(
-          ['messages', conversationId],
-          (old: Message[] | undefined) =>
-            old ? [...old, payload.payload as Message] : [payload.payload as Message]
-        );
-      })
+    const channel = supabase
+      .channel(`chat:${conversationId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
+        (payload) => {
+          const newMsg = transformToCamel<Message>(payload.new as Record<string, unknown>);
+          queryClient.setQueryData(['messages', conversationId], (old: Message[]) =>
+            old ? [...old, newMsg] : [newMsg],
+          );
+        },
+      )
       .subscribe();
-
     channelRef.current = channel;
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [conversationId, user, supabase, queryClient]);
 
+  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !user || !channelRef.current || !conversationId) return;
+  const handleSendMessage = useCallback(async () => {
+    const content = newMessage.trim();
+    if (!content || !user || !conversationId) return;
     setIsSending(true);
-
-    const messagePayload = {
-      sender_id: user.id,                     // ✅ snake_case
-      content: newMessage.trim(),
-      conversation_id: conversationId,         // ✅ snake_case
-    };
-
     setNewMessage('');
-
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .insert(messagePayload)
-        .select()
-        .single();
-      if (error) throw error;
-
-      const finalMessage = transformToCamel<Message>(data);
-
-      await channelRef.current.send({
-        type: 'broadcast',
-        event: 'message',
-        payload: finalMessage,
+      const { error } = await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        content,
       });
-    } catch (error) {
-      console.error('Failed to send message', error);
+      if (error) throw error;
+    } catch {
       toast.error('Failed to send message');
+      setNewMessage(content); // restore
     } finally {
       setIsSending(false);
+      inputRef.current?.focus();
     }
-  };
+  }, [newMessage, user, conversationId, supabase]);
 
-  if (!user || isProfileLoading || isMessagesLoading) {
+  const displayName = otherUser?.displayName ?? otherUser?.id?.slice(0, 8) ?? '...';
+  const initials = displayName.charAt(0).toUpperCase();
+
+  if (!user || isProfileLoading) {
     return (
-      <div className="flex items-center justify-center h-full" aria-live="polite" aria-label="Loading chat">
-        <Loader2 className="animate-spin size-8 text-muted-foreground" />
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="animate-spin size-8 text-muted-foreground" aria-label="Loading" />
       </div>
     );
   }
 
   if (!otherUser) {
     return (
-      <div className="p-6 flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
-        <p className="text-lg font-semibold">User not found</p>
-        <Link href="/messages">
-          <Button variant="outline"><ArrowLeft className="mr-2 size-4" />Back to Messages</Button>
-        </Link>
+      <div className="p-6 flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
+        <Crown className="size-10 opacity-30" />
+        <p className="font-semibold">King not found</p>
+        <Link href="/messages"><Button variant="outline"><ArrowLeft className="mr-2 size-4" />Back</Button></Link>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full">
-      <header className="flex items-center gap-4 p-3 border-b shrink-0 bg-card md:bg-transparent">
+      {/* Header */}
+      <header className="flex items-center gap-3 p-3 border-b shrink-0 bg-card/80 backdrop-blur">
         <Link href="/messages" className="md:hidden" aria-label="Back to messages">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft />
-          </Button>
+          <Button variant="ghost" size="icon"><ArrowLeft /></Button>
         </Link>
-        <Avatar>
-          <AvatarImage src={otherUser.avatarUrl ?? undefined} alt={otherUser.id ?? ''} />
-          <AvatarFallback>{(otherUser.id ?? 'U').charAt(0).toUpperCase()}</AvatarFallback>
+        <Avatar className="size-9">
+          <AvatarImage src={otherUser.avatarUrl ?? undefined} alt={displayName} />
+          <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
-        <div className="flex-1">
-          <h2 className="font-bold text-lg">{otherUser.id}</h2>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-semibold truncate">{displayName}</h2>
+          <p className="text-xs text-muted-foreground">{otherUser.role ?? 'king'}</p>
         </div>
-        <Button variant="ghost" size="icon" aria-label="More options">
-          <MoreVertical />
-        </Button>
+        <Button variant="ghost" size="icon" aria-label="More options"><MoreVertical /></Button>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6" role="log" aria-live="polite" aria-label="Messages">
-        {messages?.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex items-end gap-3 ${
-              msg.senderId === user.id ? 'justify-end' : ''
-            }`}
-          >
-            {msg.senderId !== user.id && (
-              <Avatar className="size-8">
-                <AvatarImage src={otherUser.avatarUrl ?? undefined} alt={otherUser.id ?? ''} />
-                <AvatarFallback>{(otherUser.id ?? 'U').charAt(0).toUpperCase()}</AvatarFallback>
-              </Avatar>
-            )}
-            <div className={`max-w-xs md:max-w-md ${msg.senderId === user.id ? 'text-right' : ''}`}>
-              <div
-                className={`p-3 rounded-lg ${
-                  msg.senderId === user.id
-                    ? 'bg-primary text-primary-foreground rounded-br-none'
-                    : 'bg-card rounded-bl-none'
-                }`}
-              >
-                <p className="text-sm">{msg.content}</p>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1 px-1">
-                {formatDistanceToNowStrict(new Date(msg.createdAt))} ago
-              </p>
-            </div>
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4" role="log" aria-live="polite" aria-label="Chat messages">
+        {isMessagesLoading ? (
+          <div className="flex justify-center pt-10"><Loader2 className="animate-spin size-6 text-muted-foreground" /></div>
+        ) : messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
+            <Crown className="size-10 opacity-20" />
+            <p className="text-sm">Start the conversation</p>
           </div>
-        ))}
-        <div ref={messagesEndRef} />
+        ) : (
+          messages.map((msg) => {
+            const isMine = msg.senderId === user.id;
+            return (
+              <div key={msg.id} className={`flex items-end gap-2 ${isMine ? 'justify-end' : ''}`}>
+                {!isMine && (
+                  <Avatar className="size-7 shrink-0">
+                    <AvatarImage src={otherUser.avatarUrl ?? undefined} alt={displayName} />
+                    <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                  </Avatar>
+                )}
+                <div className={`max-w-[70%] ${isMine ? 'text-right' : ''}`}>
+                  <div className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                    isMine
+                      ? 'bg-primary text-primary-foreground rounded-br-sm'
+                      : 'bg-muted rounded-bl-sm'
+                  }`}>
+                    {msg.content}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1 px-1">
+                    {msg.createdAt ? formatDistanceToNowStrict(new Date(msg.createdAt as string)) + ' ago' : ''}
+                  </p>
+                </div>
+              </div>
+            );
+          })
+        )}
+        <div ref={messagesEndRef} aria-hidden="true" />
       </div>
 
-      <footer className="p-3 border-t bg-card md:bg-background shrink-0">
+      {/* Input */}
+      <footer className="p-3 border-t bg-card/80 backdrop-blur shrink-0">
         <form
-          onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
-          className="relative"
+          onSubmit={(e) => { e.preventDefault(); void handleSendMessage(); }}
+          className="flex items-center gap-2"
+          aria-label="Send message"
         >
+          <Button variant="ghost" size="icon" type="button" aria-label="Attach file" disabled>
+            <Paperclip className="size-4 text-muted-foreground" />
+          </Button>
           <Input
-            placeholder="Your message..."
-            className="pr-24"
+            ref={inputRef}
+            placeholder="Your message…"
+            className="flex-1 h-10"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSendMessage(); } }}
             aria-label="Message input"
+            maxLength={2000}
+            autoFocus
           />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            <Button variant="ghost" size="icon" type="button" aria-label="Attach file">
-              <Paperclip className="size-5 text-muted-foreground" />
-            </Button>
-            <Button
-              size="icon"
-              className="bg-accent hover:bg-accent/90"
-              type="submit"
-              disabled={isSending || !newMessage.trim()}
-              aria-label="Send message"
-            >
-              {isSending ? <Loader2 className="animate-spin" /> : <Send className="size-5" />}
-            </Button>
-          </div>
+          <Button
+            size="icon" className="h-10 w-10 shrink-0" type="submit"
+            disabled={isSending || !newMessage.trim() || !conversationId}
+            aria-label="Send message"
+          >
+            {isSending ? <Loader2 className="animate-spin size-4" /> : <Send className="size-4" />}
+          </Button>
         </form>
       </footer>
     </div>

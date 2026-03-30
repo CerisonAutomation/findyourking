@@ -1,62 +1,48 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
-import { Providers } from '@/components/providers';
 import './globals.css';
+import { Providers } from '@/components/providers';
 
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-sans',
-  display: 'swap',
-});
+const inter = Inter({ subsets: ['latin'], display: 'swap' });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)',  color: '#0a0a0a' },
+  ],
+};
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://fyking.men'),
   title: {
-    default: 'Find Your King',
+    default: 'Find Your King — Gay Dating & Companionship',
     template: '%s | Find Your King',
   },
   description:
-    'The premium LGBTQ+ dating platform. Find meaningful connections, plan dates, and meet your king.',
-  keywords: ['LGBTQ dating', 'gay dating', 'find your king', 'queer dating app'],
-  authors: [{ name: 'Find Your King' }],
-  creator: 'Find Your King',
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? 'https://findyourking.vercel.app',
-  ),
+    'Discover gay kings near you. Premium dating, companion bookings, and AI-powered matchmaking on FYKING.MEN.',
   openGraph: {
     type: 'website',
     locale: 'en_US',
+    url: '/',
     siteName: 'Find Your King',
-    title: 'Find Your King',
-    description: 'Premium LGBTQ+ connections.',
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Find Your King' }],
   },
   twitter: {
     card: 'summary_large_image',
-    creator: '@findyourking',
+    title: 'Find Your King',
+    description: 'Gay dating, companion bookings & AI matchmaking.',
+    images: ['/og.png'],
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true },
-  },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
+  icons: { icon: '/favicon.ico', apple: '/apple-touch-icon.png' },
 };
 
-export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
-  ],
-  width: 'device-width',
-  initialScale: 1,
-};
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={inter.variable}>
-      <body className="min-h-screen bg-background font-sans antialiased">
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

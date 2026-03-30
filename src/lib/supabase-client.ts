@@ -1,5 +1,5 @@
 /**
  * @deprecated Import from `@/lib/supabase/client` instead.
- * This re-export exists only for backwards-compat during migration.
+ * This file exists only for backward-compatibility during migration.
  */
-export { createClient } from '@/lib/supabase/client';
+export { createClient, transformToCamel } from '@/lib/supabase/client';

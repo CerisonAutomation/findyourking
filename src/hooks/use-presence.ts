@@ -1,20 +1,21 @@
+'use client';
+
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase-client';
+import { createClient } from '@/lib/supabase/client';
 
 /**
- * Tracks real-time online presence for a given user.
- * Subscribes to the global presence channel and self-tracks.
- * Returns a Set of online user IDs.
+ * Subscribes to Supabase Realtime presence and returns a Set of online user IDs.
+ * Only mounts when a current user ID is provided.
  */
-export function usePresence(userId: string | undefined): Set<string> {
+export function usePresence(currentUserId: string | undefined): Set<string> {
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!userId) return;
+    if (!currentUserId) return;
 
     const supabase = createClient();
-    const channel = supabase.channel('presence:global', {
-      config: { presence: { key: userId } },
+    const channel = supabase.channel('global_presence', {
+      config: { presence: { key: currentUserId } },
     });
 
     channel
@@ -23,20 +24,19 @@ export function usePresence(userId: string | undefined): Set<string> {
         const ids = new Set(
           Object.values(state)
             .flat()
-            .map((p) => p.user_id),
+            .map((p) => p.user_id)
+            .filter(Boolean),
         );
         setOnlineIds(ids);
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await channel.track({ user_id: userId });
+          await channel.track({ user_id: currentUserId });
         }
       });
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId]);
+    return () => { supabase.removeChannel(channel); };
+  }, [currentUserId]);
 
   return onlineIds;
 }

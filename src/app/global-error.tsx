@@ -1,11 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 
-/**
- * Global error boundary — catches errors in the root layout.
- * Must use `<html>` and `<body>` directly as it replaces the root layout.
- */
 export default function GlobalError({
   error,
   reset,
@@ -14,22 +11,23 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
+    // Log to error reporting (Sentry, etc.) here
     console.error('[GlobalError]', error);
   }, [error]);
 
   return (
     <html lang="en">
-      <body className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-8 text-foreground">
-        <h1 className="text-2xl font-semibold">Something went wrong</h1>
-        <p className="text-sm text-muted-foreground">
-          {error.digest ? `Error ID: ${error.digest}` : 'An unexpected error occurred.'}
-        </p>
-        <button
-          onClick={reset}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          Try again
-        </button>
+      <body className="min-h-svh flex items-center justify-center bg-background text-foreground p-6">
+        <div className="text-center space-y-4 max-w-sm">
+          <h1 className="text-3xl font-bold">Something went wrong</h1>
+          <p className="text-muted-foreground text-sm">
+            {error.message ?? 'An unexpected error occurred. Our team has been notified.'}
+          </p>
+          {error.digest && (
+            <p className="text-xs text-muted-foreground font-mono">Error ID: {error.digest}</p>
+          )}
+          <Button onClick={reset}>Try again</Button>
+        </div>
       </body>
     </html>
   );

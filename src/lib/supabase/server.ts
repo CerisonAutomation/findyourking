@@ -1,16 +1,10 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import type { Database } from '@/lib/supabase/types';
+import type { Database } from './types';
 
 /**
- * Supabase client for Server Components, Server Actions, and Route Handlers.
- * Reads and writes cookies through the Next.js `cookies()` API so that the
- * Supabase session stays in sync with the browser.
- *
- * Always `await` this function before use:
- * @example
- * const supabase = await createClient();
- * const { data: { user } } = await supabase.auth.getUser();
+ * Server-side Supabase client (Server Components, Server Actions, Route Handlers).
+ * Must be called inside a request scope.
  */
 export async function createClient() {
   const cookieStore = await cookies();
@@ -20,16 +14,14 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
+        getAll: () => cookieStore.getAll(),
+        setAll: (cookiesToSet) => {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options),
             );
           } catch {
-            // Server Component read-only context — middleware handles refresh.
+            // Called from a Server Component — mutations are a no-op
           }
         },
       },

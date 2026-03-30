@@ -1,6 +1,7 @@
+const R_MILES = 3_958.8; // Earth radius in miles
+
 /**
- * Haversine great-circle distance between two lat/lon points.
- * @returns distance in miles
+ * Haversine formula — returns distance in miles between two lat/lon points.
  */
 export function haversineDistanceMiles(
   lat1: number,
@@ -8,31 +9,41 @@ export function haversineDistanceMiles(
   lat2: number,
   lon2: number,
 ): number {
-  const R = 3_958.8; // Earth radius miles
-  const toRad = (d: number) => (d * Math.PI) / 180;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R_MILES * 2 * Math.asin(Math.sqrt(a));
 }
 
 /**
- * Parse a profile location field into a lat/lon pair, or null.
+ * Parses a stored location string of the form "lat,lon" or a JSON object.
+ * Returns null if the format is unrecognised.
  */
 export function parseProfileLocation(
-  location: string | { latitude: number; longitude: number } | null | undefined,
+  location: string | null | undefined,
 ): { latitude: number; longitude: number } | null {
   if (!location) return null;
-  if (typeof location === 'object') return location;
   try {
-    const parsed = JSON.parse(location) as { latitude?: number; longitude?: number };
-    if (typeof parsed.latitude === 'number' && typeof parsed.longitude === 'number') {
-      return { latitude: parsed.latitude, longitude: parsed.longitude };
+    const parsed = JSON.parse(location) as unknown;
+    if (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      'latitude' in parsed &&
+      'longitude' in parsed
+    ) {
+      return parsed as { latitude: number; longitude: number };
     }
   } catch {
-    // not JSON — ignore
+    // Try "lat,lon" format
+    const parts = location.split(',');
+    if (parts.length === 2) {
+      const lat = parseFloat(parts[0]);
+      const lon = parseFloat(parts[1]);
+      if (!isNaN(lat) && !isNaN(lon)) return { latitude: lat, longitude: lon };
+    }
   }
   return null;
 }

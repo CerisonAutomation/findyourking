@@ -1,216 +1,148 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import React, { Suspense, useEffect, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
+import type { ReactNode } from 'react';
 import {
-  LayoutGrid,
-  MessageSquare,
-  Sparkles,
-  User as UserIcon,
-  LogOut,
-  LogIn,
+  Compass,
+  Crown,
+  CalendarDays,
+  MessageCircle,
+  Heart,
   Zap,
-  Loader2,
-  Wand2,
-  Calendar,
-  Shield,
+  Settings,
+  BrainCircuit,
+  ShieldCheck,
 } from 'lucide-react';
-import {
-  SidebarProvider,
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarFooter,
-  SidebarTrigger,
-  SidebarInset,
-} from '@/components/ui/sidebar';
-import { Logo } from './logo';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { cn } from '@/lib/utils';
+import { Logo } from '@/components/logo';
 import { useUser } from '@/hooks/use-user';
-import { useProfile } from '@/hooks/use-profile';
-import { createClient } from '@/lib/supabase-client';
-import type { UserProfile } from '@/lib/types';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
-// Lazy-loaded heavy components
-const AiKingDock = React.lazy(() =>
-  import('@/components/ai-king-dock').then((m) => ({ default: m.AiKingDock })),
-);
-const QuantumAvatarDock = React.lazy(() =>
-  import('@/components/quantum-avatar-dock').then((m) => ({ default: m.default })),
-);
+const NAV_ITEMS = [
+  { href: '/discover',       label: 'Discover',   icon: Compass },
+  { href: '/meet-now',       label: 'Meet Now',   icon: Zap },
+  { href: '/bookings',       label: 'Bookings',   icon: CalendarDays },
+  { href: '/messages',       label: 'Messages',   icon: MessageCircle },
+  { href: '/favorites',      label: 'Saved',      icon: Heart },
+  { href: '/ai-king',        label: 'Oracle',     icon: BrainCircuit },
+];
 
-// ─── Nav items ────────────────────────────────────────────────────────────────
-type NavItem = { href: string; label: string; icon: React.ElementType };
+const SECONDARY_ITEMS = [
+  { href: '/profile',        label: 'Profile',    icon: Crown },
+  { href: '/account',        label: 'Settings',   icon: Settings },
+];
 
-const BASE_NAV: readonly NavItem[] = [
-  { href: '/discover',       label: 'Discover',     icon: LayoutGrid    },
-  { href: '/favorites',      label: 'Favorites',    icon: Sparkles      },
-  { href: '/meet-now',       label: 'Meet Now',     icon: Zap           },
-  { href: '/bookings',       label: 'Bookings',     icon: Calendar      },
-  { href: '/messages',       label: 'Messages',     icon: MessageSquare },
-  { href: '/photo-curation', label: 'Photo Oracle', icon: Wand2         },
-] as const;
-
-// ─── Auth + onboarding guard ──────────────────────────────────────────────────
-function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, isLoading: isUserLoading } = useUser();
-  const { data: profile, isLoading: isProfileLoading } = useProfile(user?.id);
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isUserLoading || (user && isProfileLoading)) return;
-    if (!user) {
-      router.replace('/login');
-      return;
-    }
-    if (profile !== undefined && profile !== null && !profile.onboarded) {
-      router.replace('/onboarding');
-    }
-  }, [user, profile, isUserLoading, isProfileLoading, router]);
-
-  const isSettling = isUserLoading || (user && (isProfileLoading || profile === undefined));
-  const isBlocked = !user || (profile !== undefined && !profile?.onboarded);
-
-  if (isSettling || isBlocked) return <RootPageLoader />;
-
-  return <AppShell profile={profile!}>{children}</AppShell>;
-}
-
-// ─── App shell ────────────────────────────────────────────────────────────────
-function AppShell({
-  children,
-  profile,
+function NavItem({
+  href, label, icon: Icon, compact = false,
 }: {
-  children: React.ReactNode;
-  profile: UserProfile;
+  href: string; label: string; icon: React.ElementType; compact?: boolean;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
+  const active = pathname === href || pathname.startsWith(href + '/');
 
-  const handleLogout = async () => {
-    await createClient().auth.signOut();
-    router.push('/login');
-  };
-
-  const navItems = useMemo<NavItem[]>(() => {
-    const items: NavItem[] = [...BASE_NAV];
-    if (profile.role === 'admin') {
-      items.push({ href: '/admin', label: 'Admin', icon: Shield });
-    }
-    return items;
-  }, [profile.role]);
-
-  const displayName = (profile as UserProfile & { displayName?: string }).displayName
-    ?? (profile as UserProfile & { id?: string }).id
-    ?? 'Account';
+  if (compact) {
+    return (
+      <TooltipProvider delayDuration={0}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              href={href}
+              aria-label={label}
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'flex items-center justify-center size-10 rounded-xl transition-colors',
+                active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+              )}
+            >
+              <Icon className="size-5" />
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="right">{label}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
 
   return (
-    <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader>
-          <div className="flex items-center justify-between p-2">
-            <Logo />
-            <SidebarTrigger />
-          </div>
-        </SidebarHeader>
-
-        <SidebarContent className="p-2">
-          <nav aria-label="Main navigation">
-            <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname.startsWith(item.href)}
-                    tooltip={{ children: item.label }}
-                  >
-                    <Link href={item.href}>
-                      <item.icon aria-hidden="true" />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </nav>
-        </SidebarContent>
-
-        <SidebarFooter className="p-2">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={pathname === '/account'}
-                tooltip={{ children: 'Account' }}
-              >
-                <Link href="/account">
-                  <Avatar className="size-6">
-                    <AvatarImage
-                      src={(profile as UserProfile & { avatarUrl?: string }).avatarUrl ?? undefined}
-                      alt={displayName}
-                    />
-                    <AvatarFallback>
-                      <UserIcon className="size-3" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="truncate">{displayName}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={handleLogout}
-                tooltip={{ children: 'Sign out' }}
-                className="text-destructive hover:text-destructive"
-              >
-                <LogOut aria-hidden="true" />
-                <span>Sign out</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
-      </Sidebar>
-
-      <SidebarInset>{children}</SidebarInset>
-
-      <Suspense fallback={null}>
-        <AiKingDock />
-      </Suspense>
-      <Suspense fallback={null}>
-        <QuantumAvatarDock />
-      </Suspense>
-    </SidebarProvider>
-  );
-}
-
-// ─── Public exports ───────────────────────────────────────────────────────────
-export function AppLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <Suspense fallback={<RootPageLoader />}>
-      <AuthGuard>{children}</AuthGuard>
-    </Suspense>
-  );
-}
-
-export function RootPageLoader() {
-  return (
-    <main
-      className="flex min-h-screen flex-col items-center justify-center gap-4 p-4 bg-background"
-      aria-live="polite"
-      aria-busy="true"
-      aria-label="Loading application"
+    <Link
+      href={href}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors',
+        active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+      )}
     >
-      <Logo />
-      <Loader2 className="size-12 animate-spin text-primary" />
-      <p className="text-sm text-muted-foreground">Initializing Your Kingdom…</p>
-    </main>
+      <Icon className="size-5 shrink-0" />
+      <span>{label}</span>
+    </Link>
   );
 }
 
-// Back-compat re-export
-export { LogIn };
+export function AppLayout({ children }: { children: ReactNode }) {
+  const { user } = useUser();
+
+  const adminItem = user ? { href: '/admin', label: 'Admin', icon: ShieldCheck } : null;
+
+  return (
+    <div className="flex h-svh overflow-hidden bg-background">
+      {/* Desktop sidebar */}
+      <aside
+        className="hidden md:flex flex-col gap-2 w-60 shrink-0 border-r p-4"
+        aria-label="Main navigation"
+      >
+        <Link href="/discover" className="flex items-center gap-2 mb-4 px-1">
+          <Logo className="size-7" />
+          <span className="font-bold tracking-tight text-sm">Find Your King</span>
+        </Link>
+
+        <nav className="flex flex-col gap-1 flex-1">
+          {NAV_ITEMS.map((item) => <NavItem key={item.href} {...item} />)}
+        </nav>
+
+        <div className="flex flex-col gap-1 border-t pt-3">
+          {SECONDARY_ITEMS.map((item) => <NavItem key={item.href} {...item} />)}
+          {adminItem && <NavItem {...adminItem} />}
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div className="flex-1 overflow-y-auto pb-20 md:pb-0">
+          {children}
+        </div>
+      </main>
+
+      {/* Mobile bottom nav */}
+      <nav
+        className="md:hidden fixed bottom-0 inset-x-0 border-t bg-background/90 backdrop-blur-sm z-50"
+        aria-label="Mobile navigation"
+      >
+        <div className="flex items-center justify-around px-2 py-2">
+          {NAV_ITEMS.slice(0, 5).map(({ href, label, icon: Icon }) => {
+            const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+            const active = pathname === href;
+            return (
+              <Link
+                key={href} href={href} aria-label={label}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg text-[10px] transition-colors',
+                  active ? 'text-primary' : 'text-muted-foreground',
+                )}
+              >
+                <Icon className="size-5" />
+                <span>{label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </div>
+  );
+}

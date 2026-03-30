@@ -1,170 +1,126 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { createClient } from '@/lib/supabase-client';
-import { useUser } from '@/hooks/use-user';
-
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Logo } from '@/components/logo';
-import { Loader2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { z } from 'zod';
+import { useTransition, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Logo } from '@/components/logo';
+import { createClient } from '@/lib/supabase/client';
 
-const formSchema = z
+const SignupSchema = z
   .object({
-    email: z.string().email({ message: 'Please enter a valid email.' }),
-    password: z
-      .string()
-      .min(6, { message: 'Password must be at least 6 characters.' }),
-    confirmPassword: z.string(),
+    email: z.string().email('Enter a valid email'),
+    password: z.string().min(8, 'At least 8 characters').max(72),
+    confirm: z.string(),
   })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
+  .refine((d) => d.password === d.confirm, {
+    message: 'Passwords do not match',
+    path: ['confirm'],
   });
+
+type SignupValues = z.infer<typeof SignupSchema>;
 
 export default function SignupPage() {
-  const { user, isLoading } = useUser();
   const router = useRouter();
-  const supabase = createClient();
+  const [showPw, setShowPw] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [sent, setSent] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-      confirmPassword: '',
-    },
+  const { register, handleSubmit, formState: { errors } } = useForm<SignupValues>({
+    resolver: zodResolver(SignupSchema),
   });
 
-  useEffect(() => {
-    if (user) {
-      router.replace('/onboarding');
-    }
-  }, [user, router]);
-
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    const { error } = await supabase.auth.signUp({
-      email: values.email,
-      password: values.password,
-      options: {
-        emailRedirectTo: `${location.origin}/auth/callback`,
-      },
-    });
-
-    if (error) {
-      toast.error('Sign Up Failed', { description: error.message });
-    } else {
-      toast.success('Confirmation email sent!', {
-        description: 'Please check your inbox to verify your email and enter the kingdom.',
+  const onSubmit = (values: SignupValues) => {
+    startTransition(async () => {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+        },
       });
-    }
-  }
+      if (error) { toast.error('Sign up failed', { description: error.message }); return; }
+      setSent(true);
+    });
+  };
 
-  if (isLoading || user) {
+  if (sent) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="size-12 animate-spin text-primary" />
-      </div>
+      <main className="min-h-svh flex items-center justify-center p-4">
+        <div className="text-center space-y-4 max-w-sm">
+          <Logo className="size-12 mx-auto" />
+          <h1 className="text-2xl font-bold">Check your inbox</h1>
+          <p className="text-muted-foreground text-sm">
+            We sent a confirmation link to your email. Click it to activate your account and start your journey.
+          </p>
+          <Button variant="outline" onClick={() => router.push('/login')}>Back to Sign In</Button>
+        </div>
+      </main>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4">
-      <Card className="w-full max-w-sm border-0 md:border md:border-border shadow-none md:shadow-lg bg-card/80">
-        <CardHeader className="text-center">
-          <Logo className="mx-auto mb-4" />
-          <CardTitle className="text-2xl">Claim Your Throne</CardTitle>
-          <CardDescription>
-            Create your account to join the elite.
-          </CardDescription>
-        </CardHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent className="grid gap-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="king@domain.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-            <CardFooter className="flex flex-col gap-4">
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={form.formState.isSubmitting}
-              >
-                {form.formState.isSubmitting ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  'Sign Up'
-                )}
-              </Button>
-              <div className="text-center text-sm">
-                Already have a crown?
-                <Button asChild variant="link" className="px-1">
-                  <Link href="/login">Sign in</Link>
-                </Button>
-              </div>
-            </CardFooter>
-          </form>
-        </Form>
-      </Card>
+    <main className="min-h-svh flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm space-y-8">
+        <div className="flex flex-col items-center gap-3">
+          <Logo className="size-12" />
+          <h1 className="text-2xl font-bold tracking-tight">Claim your throne</h1>
+          <p className="text-sm text-muted-foreground">Create your free account</p>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <div className="space-y-1.5">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" autoComplete="email" placeholder="you@example.com"
+              aria-invalid={!!errors.email} {...register('email')} />
+            {errors.email && <p className="text-xs text-destructive" role="alert">{errors.email.message}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="password">Password</Label>
+            <div className="relative">
+              <Input id="password" type={showPw ? 'text' : 'password'} autoComplete="new-password"
+                placeholder="••••••••" className="pr-10" {...register('password')} />
+              <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowPw((v) => !v)} aria-label={showPw ? 'Hide' : 'Show'}>
+                {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+            {errors.password && <p className="text-xs text-destructive" role="alert">{errors.password.message}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="confirm">Confirm password</Label>
+            <Input id="confirm" type={showPw ? 'text' : 'password'} autoComplete="new-password"
+              placeholder="••••••••" {...register('confirm')} />
+            {errors.confirm && <p className="text-xs text-destructive" role="alert">{errors.confirm.message}</p>}
+          </div>
+
+          <Button type="submit" className="w-full h-11" disabled={isPending}>
+            {isPending && <Loader2 className="size-4 mr-2 animate-spin" />}
+            Create Account
+          </Button>
+
+          <p className="text-center text-sm text-muted-foreground">
+            Already have an account?{' '}
+            <Link href="/login" className="text-primary font-medium hover:underline">Sign in</Link>
+          </p>
+        </form>
+
+        <p className="text-center text-xs text-muted-foreground">
+          By creating an account you confirm you are 18+ and agree to our{' '}
+          <Link href="/legal/terms" className="underline underline-offset-4 hover:text-primary">Terms</Link> and{' '}
+          <Link href="/legal/privacy" className="underline underline-offset-4 hover:text-primary">Privacy Policy</Link>.
+        </p>
+      </div>
     </main>
   );
 }

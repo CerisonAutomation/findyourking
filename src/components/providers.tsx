@@ -2,14 +2,10 @@
 
 import { type ReactNode } from 'react';
 import { ThemeProvider } from 'next-themes';
-import { Toaster } from 'sonner';
+import { Toaster } from '@/components/ui/sonner';
 import { QueryProvider } from '@/providers/query-provider';
 import { UserProvider } from '@/hooks/use-user';
 
-/**
- * Root provider tree — order is intentional:
- * ThemeProvider → QueryProvider → UserProvider → children
- */
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider
@@ -21,13 +17,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <QueryProvider>
         <UserProvider>
           {children}
-          <Toaster
-            richColors
-            position="top-right"
-            toastOptions={{
-              classNames: { toast: 'font-sans text-sm' },
-            }}
-          />
+          <Toaster richColors closeButton position="top-right" />
         </UserProvider>
       </QueryProvider>
     </ThemeProvider>

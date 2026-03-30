@@ -1,92 +1,70 @@
 import type { InferSelectModel } from 'drizzle-orm';
 import type {
   profiles,
-  users,
-  messages,
-  meetNowCards,
-  favorites,
   bookings,
+  messages,
+  conversations,
+  favorites,
   subscriptions,
   notifications,
-  adminSettings,
-  tribes,
-  interests,
+  meetNowCards,
 } from '@/db/schema';
 
-// ─── Drizzle-inferred row types ───────────────────────────────────────────────
+// ─── Domain model types (Drizzle-inferred) ───────────────────────────────────
 
-export type User = InferSelectModel<typeof users>;
-export type UserProfile = InferSelectModel<typeof profiles> & {
-  /** Computed distance — populated by discovery queries */
+export type Profile        = InferSelectModel<typeof profiles>;
+export type Booking        = InferSelectModel<typeof bookings>;
+export type Message        = InferSelectModel<typeof messages>;
+export type Conversation   = InferSelectModel<typeof conversations>;
+export type Favorite       = InferSelectModel<typeof favorites>;
+export type Subscription   = InferSelectModel<typeof subscriptions>;
+export type Notification   = InferSelectModel<typeof notifications>;
+export type MeetNowCard    = InferSelectModel<typeof meetNowCards>;
+
+/**
+ * UserProfile is the camelCase client-side shape returned from Supabase
+ * raw rows after `transformToCamel()`. Extends Profile with optional
+ * computed fields attached on the client.
+ */
+export interface UserProfile extends Partial<Profile> {
+  id?: string;         // aliased from userId for convenience
   distanceMiles?: number;
-};
-export type Message = InferSelectModel<typeof messages>;
-export type MeetNowCard = InferSelectModel<typeof meetNowCards>;
-export type Favorite = InferSelectModel<typeof favorites>;
-export type Booking = InferSelectModel<typeof bookings>;
-export type Subscription = InferSelectModel<typeof subscriptions>;
-export type Notification = InferSelectModel<typeof notifications>;
-export type AdminSetting = InferSelectModel<typeof adminSettings>;
-export type Tribe = InferSelectModel<typeof tribes>;
-export type Interest = InferSelectModel<typeof interests>;
+}
 
-// ─── Domain types ─────────────────────────────────────────────────────────────
+// ─── Enums (mirrors pgEnum values) ───────────────────────────────────────────
 
-export type BookingStatus =
-  | 'pending'
-  | 'confirmed'
-  | 'in_progress'
-  | 'completed'
-  | 'cancelled';
-
-export type UserRole = 'seeker' | 'provider' | 'admin';
-
+export type UserRole         = 'seeker' | 'provider' | 'admin';
 export type SubscriptionTier = 'free' | 'premium' | 'platinum';
+export type BookingStatus    = 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
+export type NotificationType = 'message' | 'booking' | 'favorite' | 'match' | 'system';
 
-// ─── Supabase RPC shapes (snake_case as returned by PostgreSQL) ───────────────
-
-export interface ConversationRow {
-  conversation_id: string;
-  other_user_id: string;
-  other_user_name: string;
-  other_user_avatar: string | null;
-  last_message_content: string | null;
-  last_message_created_at: string | null;
-  unread_count: number;
-}
-
-export interface ConversationMessage {
-  id: string;
-  conversationId: string;
-  senderId: string;
-  content: string;
-  createdAt: string;
-  isRead: boolean;
-}
-
-// ─── Shared paginated response wrapper ───────────────────────────────────────
+// ─── Pagination ───────────────────────────────────────────────────────────────
 
 export interface PaginatedResult<T> {
   data: T[];
-  hasMore: boolean;
   total: number;
   page: number;
+  hasMore: boolean;
 }
 
 // ─── Discover filters ─────────────────────────────────────────────────────────
 
 export interface DiscoverFilters {
-  ageRange: [number, number];
   distanceMiles: number;
   tribes: string[];
   interests: string[];
   onlineOnly: boolean;
+  role: UserRole | 'all';
+  minAge: number;
+  maxAge: number;
 }
 
 export const DEFAULT_DISCOVER_FILTERS: DiscoverFilters = {
-  ageRange: [18, 65],
   distanceMiles: 50,
   tribes: [],
   interests: [],
   onlineOnly: false,
+  role: 'all',
+  minAge: 18,
+  maxAge: 99,
 };
