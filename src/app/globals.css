@@ -1,73 +1,61 @@
-/* Tailwind v4 — single import directive replaces @tailwind base/components/utilities */
-@import "tailwindcss";
-/* tailwindcss-animate must be loaded as a Tailwind v4 plugin, NOT @import */
-@plugin "tailwindcss-animate";
+@import 'tailwindcss';
+@plugin 'tailwindcss-animate';
 
-/**
- * Tailwind v4: CSS custom properties must be registered under @theme inline
- * using the --color-* namespace so they become available as utility classes:
- * border-border → var(--color-border)
- * bg-background → var(--color-background)
- * text-foreground → var(--color-foreground)
- * etc.
- */
-@theme inline {
-  --color-background:        hsl(240 10% 3.9%);
-  --color-foreground:        hsl(0 0% 98%);
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 224 71.4% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 71.4% 4.1%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71.4% 4.1%;
+    --primary: 262.1 83.3% 57.8%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 220.9 39.3% 11%;
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
+    --accent: 220 14.3% 95.9%;
+    --accent-foreground: 220.9 39.3% 11%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 262.1 83.3% 57.8%;
+    --radius: 0.75rem;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
 
-  --color-card:              hsl(240 10% 3.9%);
-  --color-card-foreground:   hsl(0 0% 98%);
-
-  --color-popover:           hsl(240 10% 3.9%);
-  --color-popover-foreground: hsl(0 0% 98%);
-
-  --color-primary:           hsl(330 85% 60%);
-  --color-primary-foreground: hsl(0 0% 98%);
-
-  --color-secondary:         hsl(240 3.7% 15.9%);
-  --color-secondary-foreground: hsl(0 0% 98%);
-
-  --color-muted:             hsl(240 3.7% 15.9%);
-  --color-muted-foreground:  hsl(240 5% 64.9%);
-
-  --color-accent:            hsl(240 3.7% 15.9%);
-  --color-accent-foreground: hsl(0 0% 98%);
-
-  --color-destructive:       hsl(0 62.8% 30.6%);
-  --color-destructive-foreground: hsl(0 0% 98%);
-
-  --color-border:            hsl(330 85% 60%);
-  --color-input:             hsl(240 3.7% 15.9%);
-  --color-ring:              hsl(330 85% 70%);
-
-  --radius: 0.75rem;
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-}
-
-/* Dark theme overrides — update @theme tokens for dark mode */
-.dark {
-  --color-background:        hsl(240 10% 3.9%);
-  --color-foreground:        hsl(0 0% 98%);
-  --color-card:              hsl(240 10% 3.9%);
-  --color-card-foreground:   hsl(0 0% 98%);
-  --color-popover:           hsl(240 10% 3.9%);
-  --color-popover-foreground: hsl(0 0% 98%);
-  --color-primary:           hsl(330 85% 60%);
-  --color-primary-foreground: hsl(0 0% 98%);
-  --color-secondary:         hsl(240 3.7% 15.9%);
-  --color-secondary-foreground: hsl(0 0% 98%);
-  --color-muted:             hsl(240 3.7% 15.9%);
-  --color-muted-foreground:  hsl(240 5% 64.9%);
-  --color-accent:            hsl(240 3.7% 15.9%);
-  --color-accent-foreground: hsl(0 0% 98%);
-  --color-destructive:       hsl(0 62.8% 30.6%);
-  --color-destructive-foreground: hsl(0 0% 98%);
-  --color-border:            hsl(330 85% 60%);
-  --color-input:             hsl(240 3.7% 15.9%);
-  --color-ring:              hsl(330 85% 70%);
+  .dark {
+    --background: 224 71.4% 4.1%;
+    --foreground: 210 20% 98%;
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 20% 98%;
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 263.4 70% 50.4%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 215 27.9% 16.9%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+    --accent: 215 27.9% 16.9%;
+    --accent-foreground: 210 20% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 263.4 70% 50.4%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
 }
 
 @layer base {
@@ -76,51 +64,27 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
   }
 
-  /* Accessible focus rings */
-  :focus-visible {
-    @apply outline-2 outline-offset-2 outline-ring;
-  }
-
-  /* Smooth scroll — respects reduced motion */
+  /* Smooth scrolling respecting reduced motion */
   html {
     scroll-behavior: smooth;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    *, *::before, *::after {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    ::before,
+    ::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
-}
-
-/* ── Animated grid background ── */
-@layer utilities {
-  .bg-grid {
-    background-image:
-      linear-gradient(color-mix(in srgb, var(--color-primary) 10%, transparent) 1px, transparent 1px),
-      linear-gradient(to right, color-mix(in srgb, var(--color-primary) 10%, transparent) 1px, transparent 1px);
-    background-size: 3rem 3rem;
-  }
-}
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  @apply bg-grid;
-  z-index: -1;
-  pointer-events: none;
-  animation: pulseGrid 15s infinite ease-in-out;
-}
-
-@keyframes pulseGrid {
-  0%, 100% { opacity: 0.2; }
-  50%       { opacity: 0.4; }
 }

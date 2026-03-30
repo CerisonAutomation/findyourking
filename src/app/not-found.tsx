@@ -1,24 +1,18 @@
-import type { Metadata } from 'next';
 import Link from 'next/link';
 
-export const metadata: Metadata = {
-  title: '404 — Page Not Found',
-};
-
-/**
- * Global 404 page — replaces the default Next.js not found UI.
- * @see https://nextjs.org/docs/app/api-reference/file-conventions/not-found
- */
 export default function NotFound() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 text-center px-4">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
       <h1 className="text-6xl font-bold text-primary">404</h1>
-      <p className="text-muted-foreground text-lg">This page could not be found.</p>
+      <h2 className="text-2xl font-semibold">Page not found</h2>
+      <p className="max-w-md text-muted-foreground">
+        The page you&apos;re looking for doesn&apos;t exist or has been moved.
+      </p>
       <Link
-        href="/discover"
-        className="mt-4 rounded-md bg-primary px-6 py-2 text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+        href="/"
+        className="mt-4 rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground transition-opacity hover:opacity-90"
       >
-        Back to Discover
+        Go home
       </Link>
     </main>
   );

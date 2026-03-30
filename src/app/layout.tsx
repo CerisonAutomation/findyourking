@@ -1,70 +1,52 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+import { ThemeProvider } from 'next-themes';
+import { Toaster } from 'sonner';
+import { QueryProvider } from '@/providers/query-provider';
 import './globals.css';
-import { Providers } from '@/components/providers';
-import { Toaster } from '@/components/ui/sonner';
 
-// ─── Font — subset + display swap for CLS=0 ─────────────────────────────────
 const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-sans',
   display: 'swap',
-  preload: true,
 });
 
-// ─── Root Metadata ───────────────────────────────────────────────────────────
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? 'https://findyourking.app'
-  ),
   title: {
-    default: 'FindYourKing — Gay Dating & Meet-Now',
-    template: '%s | FindYourKing',
+    default: 'Find Your King',
+    template: '%s | Find Your King',
   },
   description:
-    'The premier gay dating, meet-now and booking platform. Discover, connect and book now.',
-  keywords: ['gay dating', 'meet now', 'gay app', 'LGBTQ+', 'booking'],
-  authors: [{ name: 'FindYourKing', url: 'https://findyourking.app' }],
-  creator: 'FindYourKing',
-  publisher: 'FindYourKing',
-  manifest: '/manifest.json',
-  // ─── Open Graph ────────────────────────────────────────────────────────────
+    'The premium LGBTQ+ dating platform. Find meaningful connections, plan dates, and meet your king.',
+  keywords: ['LGBTQ dating', 'gay dating', 'find your king', 'queer dating app'],
+  authors: [{ name: 'Find Your King' }],
+  creator: 'Find Your King',
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? 'https://findyourking.vercel.app',
+  ),
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://findyourking.app',
-    siteName: 'FindYourKing',
-    title: 'FindYourKing — Gay Dating & Meet-Now',
-    description:
-      'The premier gay dating, meet-now and booking platform.',
-    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'FindYourKing' }],
+    siteName: 'Find Your King',
   },
-  // ─── Twitter / X ───────────────────────────────────────────────────────────
   twitter: {
     card: 'summary_large_image',
-    title: 'FindYourKing',
-    description: 'The premier gay dating, meet-now & booking platform.',
-    images: ['/og-image.png'],
+    creator: '@findyourking',
   },
-  // ─── PWA / Apple ───────────────────────────────────────────────────────────
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'FyKing Men',
-  },
-  // ─── Robots ────────────────────────────────────────────────────────────────
   robots: {
     index: true,
     follow: true,
-    googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
+    googleBot: { index: true, follow: true },
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#7c3aed',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+  ],
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -73,14 +55,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${
-          inter.variable
-        } font-sans antialiased bg-background text-foreground`}
-      >
-        <Providers>{children}</Providers>
-        <Toaster richColors position="top-right" />
+    <html lang="en" suppressHydrationWarning className={inter.variable}>
+      <body>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <QueryProvider>
+            {children}
+            <Toaster richColors position="top-right" />
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
