@@ -4,7 +4,7 @@ import { useState, useCallback, memo } from 'react';
 import type { UserProfile, DiscoverFilters, PaginatedResult } from '@/lib/types';
 import { DEFAULT_DISCOVER_FILTERS } from '@/lib/types';
 import { ProfileCard } from '@/components/profile-card';
-import { Frown, Loader2, BrainCircuit, Search, SlidersHorizontal } from 'lucide-react';
+import { Frown, Loader2, BrainCircuit, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUser } from '@/hooks/use-user';
@@ -13,14 +13,14 @@ import { useLocation } from '@/hooks/use-location';
 import { toast } from 'sonner';
 import { createClient, transformToCamel } from '@/lib/supabase-client';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { useInView } from 'react-intersection-observer';
+import { useInView } from '@/hooks/use-in-view';
 import { FilterDialog } from '@/components/filter-dialog';
 import { haversineDistanceMiles, parseProfileLocation } from '@/lib/geo';
 import { findKings, type FindKingsOutput } from '@/ai/flows/find-kings-flow';
 
 const PAGE_SIZE = 20;
 
-// ─── Data fetcher (pure, no side-effects) ─────────────────────────────────────
+// ─── Data fetcher ─────────────────────────────────────────────────────────────
 async function fetchProfilesPage(
   currentUserId: string | undefined,
   page: number,
@@ -94,6 +94,8 @@ export default function DiscoverPage() {
   const { user } = useUser();
   const location = useLocation();
   const onlineIds = usePresence(user?.id);
+
+  // Native IntersectionObserver — no external dependency
   const { ref: sentinelRef, inView } = useInView({ threshold: 0 });
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -115,9 +117,10 @@ export default function DiscoverPage() {
     enabled: !!user && !aiResults,
   });
 
-  // Trigger next page when sentinel is visible
-  const canLoadMore = inView && hasNextPage && !isFetchingNextPage && !aiResults;
-  if (canLoadMore) fetchNextPage();
+  // Trigger next page when sentinel is in view
+  if (inView && hasNextPage && !isFetchingNextPage && !aiResults) {
+    fetchNextPage();
+  }
 
   // ─── AI Search ───────────────────────────────────────────────────────────────
   const handleAiSearch = useCallback(
@@ -140,16 +143,20 @@ export default function DiscoverPage() {
     [searchQuery, user],
   );
 
-  const clearSearch = () => { setAiResults(null); setSearchQuery(''); };
+  const clearSearch = useCallback(() => {
+    setAiResults(null);
+    setSearchQuery('');
+  }, []);
 
   // ─── Filter + distance-sort ───────────────────────────────────────────────────
   const allProfiles = data?.pages.flatMap((p) => p.data) ?? [];
 
   const displayProfiles = (() => {
     let list = allProfiles;
-    const geo = location.latitude && location.longitude
-      ? { lat: location.latitude, lon: location.longitude }
-      : null;
+    const geo =
+      location.latitude && location.longitude
+        ? { lat: location.latitude, lon: location.longitude }
+        : null;
 
     if (geo) {
       list = list
@@ -180,8 +187,9 @@ export default function DiscoverPage() {
     }
     if (filters.onlineOnly) {
       list = list.filter((p) => {
-        const id = (p as UserProfile & { userId?: string }).userId
-          ?? (p as UserProfile & { user_id?: string }).user_id;
+        const id =
+          (p as UserProfile & { userId?: string }).userId ??
+          (p as UserProfile & { user_id?: string }).user_id;
         return id ? onlineIds.has(id) : false;
       });
     }
@@ -202,7 +210,11 @@ export default function DiscoverPage() {
 
       {/* Search bar */}
       <div className="flex items-center gap-2">
-        <form onSubmit={handleAiSearch} className="flex flex-1 items-center gap-2" role="search">
+        <form
+          onSubmit={handleAiSearch}
+          className="flex flex-1 items-center gap-2"
+          role="search"
+        >
           <div className="relative flex-1">
             <BrainCircuit
               className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none"
@@ -225,11 +237,20 @@ export default function DiscoverPage() {
             {isAiSearching ? (
               <Loader2 className="size-4 animate-spin" aria-hidden="true" />
             ) : (
-              <><Search className="size-4 mr-1.5" aria-hidden="true" />Find Kings</>
+              <>
+                <Search className="size-4 mr-1.5" aria-hidden="true" />
+                Find Kings
+              </>
             )}
           </Button>
           {aiResults && (
-            <Button type="button" variant="ghost" size="sm" className="h-11" onClick={clearSearch}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-11"
+              onClick={clearSearch}
+            >
               Clear
             </Button>
           )}
@@ -244,7 +265,8 @@ export default function DiscoverPage() {
         aiResults.kings.length > 0 ? (
           <section aria-label="AI search results">
             <p className="text-xs text-muted-foreground mb-3">
-              {aiResults.kings.length} king{aiResults.kings.length !== 1 ? 's' : ''} found by Oracle
+              {aiResults.kings.length} king
+              {aiResults.kings.length !== 1 ? 's' : ''} found by Oracle
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {aiResults.kings.map((k) => (
@@ -252,7 +274,9 @@ export default function DiscoverPage() {
                   key={(k.profile as UserProfile & { userId?: string }).userId}
                   user={k.profile}
                   matchScore={k.matchScore}
-                  isOnline={onlineIds.has((k.profile as UserProfile & { userId?: string }).userId ?? '')}
+                  isOnline={onlineIds.has(
+                    (k.profile as UserProfile & { userId?: string }).userId ?? '',
+                  )}
                 />
               ))}
             </div>
@@ -268,8 +292,10 @@ export default function DiscoverPage() {
         <section aria-label="Browse profiles">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {displayProfiles.map((p) => {
-              const id = (p as UserProfile & { userId?: string }).userId
-                ?? (p as UserProfile & { user_id?: string }).user_id ?? '';
+              const id =
+                (p as UserProfile & { userId?: string }).userId ??
+                (p as UserProfile & { user_id?: string }).user_id ??
+                '';
               return (
                 <ProfileCard
                   key={id}

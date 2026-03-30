@@ -1,6 +1,7 @@
 'use client';
+
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'use-hook-form';
+import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
@@ -30,13 +31,14 @@ const updatePasswordFormSchema = z
   .object({
     password: z
       .string()
-      .min(6, { message: 'Password must be at least 6 characters' }),
+      .min(8, { message: 'Password must be at least 8 characters.' })
+      .max(72, { message: 'Password must be fewer than 72 characters.' }),
     confirmPassword: z
       .string()
-      .min(6, { message: 'Password must be at least 6 characters' }),
+      .min(8, { message: 'Password must be at least 8 characters.' }),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
+    message: 'Passwords do not match.',
     path: ['confirmPassword'],
   });
 
@@ -44,6 +46,7 @@ type UpdatePasswordFormValues = z.infer<typeof updatePasswordFormSchema>;
 
 export const UpdatePasswordCard = () => {
   const supabase = createClient();
+
   const form = useForm<UpdatePasswordFormValues>({
     resolver: zodResolver(updatePasswordFormSchema),
     defaultValues: { password: '', confirmPassword: '' },
@@ -51,28 +54,37 @@ export const UpdatePasswordCard = () => {
   });
 
   const onSubmit = async (data: UpdatePasswordFormValues) => {
-    toast.loading('Updating password...');
-    const { error } = await supabase.auth.updateUser({
-      password: data.password,
-    });
+    const toastId = toast.loading('Updating password...');
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: data.password,
+      });
 
-    if (error) {
-      toast.error('Failed to update password', { description: error.message });
-    } else {
-      toast.success('Password updated successfully!');
+      if (error) {
+        toast.error('Failed to update password', {
+          id: toastId,
+          description: error.message,
+        });
+        return;
+      }
+
+      toast.success('Password updated successfully!', { id: toastId });
       form.reset();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
+      toast.error('Something went wrong', { id: toastId, description: message });
     }
   };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
         <Card>
           <CardHeader>
             <CardTitle>Password</CardTitle>
-            <CardDescription>
-              Enter a new password to secure your kingdom.
-            </CardDescription>
+            <CardDescription>Enter a new password to secure your kingdom.</CardDescription>
           </CardHeader>
+
           <CardContent className="space-y-4">
             <FormField
               control={form.control}
@@ -81,12 +93,21 @@ export const UpdatePasswordCard = () => {
                 <FormItem>
                   <FormLabel>New Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="New password" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="Min. 8 characters"
+                      autoComplete="new-password"
+                      {...field}
+                    />
                   </FormControl>
+                  <FormDescription>
+                    Choose a strong password with at least 8 characters.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="confirmPassword"
@@ -96,7 +117,8 @@ export const UpdatePasswordCard = () => {
                   <FormControl>
                     <Input
                       type="password"
-                      placeholder="Confirm new password"
+                      placeholder="Repeat your new password"
+                      autoComplete="new-password"
                       {...field}
                     />
                   </FormControl>
@@ -105,13 +127,14 @@ export const UpdatePasswordCard = () => {
               )}
             />
           </CardContent>
+
           <CardFooter className="border-t px-6 py-4">
             <Button
               type="submit"
               disabled={form.formState.isSubmitting || !form.formState.isDirty}
             >
               {form.formState.isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
               )}
               Save
             </Button>
