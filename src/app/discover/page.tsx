@@ -11,7 +11,7 @@ import { useUser } from '@/hooks/use-user';
 import { usePresence } from '@/hooks/use-presence';
 import { useLocation } from '@/hooks/use-location';
 import { toast } from 'sonner';
-import { createClient, transformToCamel } from '@/lib/supabase-client';
+import { createClient, transformToCamel } from '@/lib/supabase/client';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useInView } from '@/hooks/use-in-view';
 import { FilterDialog } from '@/components/filter-dialog';
@@ -20,7 +20,6 @@ import { findKings, type FindKingsOutput } from '@/ai/flows/find-kings-flow';
 
 const PAGE_SIZE = 20;
 
-// ─── Data fetcher ─────────────────────────────────────────────────────────────
 async function fetchProfilesPage(
   currentUserId: string | undefined,
   page: number,
@@ -51,7 +50,6 @@ async function fetchProfilesPage(
   };
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
 const ProfileGridSkeleton = memo(function ProfileGridSkeleton() {
   return (
     <div
@@ -70,7 +68,6 @@ const ProfileGridSkeleton = memo(function ProfileGridSkeleton() {
   );
 });
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
 function EmptyState({
   icon: Icon,
   title,
@@ -89,13 +86,11 @@ function EmptyState({
   );
 }
 
-// ─── Main page ────────────────────────────────────────────────────────────────
 export default function DiscoverPage() {
   const { user } = useUser();
   const location = useLocation();
   const onlineIds = usePresence(user?.id);
 
-  // Native IntersectionObserver — no external dependency
   const { ref: sentinelRef, inView } = useInView({ threshold: 0 });
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -117,12 +112,10 @@ export default function DiscoverPage() {
     enabled: !!user && !aiResults,
   });
 
-  // Trigger next page when sentinel is in view
   if (inView && hasNextPage && !isFetchingNextPage && !aiResults) {
     fetchNextPage();
   }
 
-  // ─── AI Search ───────────────────────────────────────────────────────────────
   const handleAiSearch = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -148,7 +141,6 @@ export default function DiscoverPage() {
     setSearchQuery('');
   }, []);
 
-  // ─── Filter + distance-sort ───────────────────────────────────────────────────
   const allProfiles = data?.pages.flatMap((p) => p.data) ?? [];
 
   const displayProfiles = (() => {
@@ -197,10 +189,8 @@ export default function DiscoverPage() {
     return list;
   })();
 
-  // ─── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 min-h-full">
-      {/* Header */}
       <header className="space-y-1">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">The Throne Room</h1>
         <p className="text-sm text-muted-foreground">
@@ -208,7 +198,6 @@ export default function DiscoverPage() {
         </p>
       </header>
 
-      {/* Search bar */}
       <div className="flex items-center gap-2">
         <form
           onSubmit={handleAiSearch}
@@ -258,7 +247,6 @@ export default function DiscoverPage() {
         <FilterDialog filters={filters} setFilters={setFilters} />
       </div>
 
-      {/* Content */}
       {isAiSearching || isLoading ? (
         <ProfileGridSkeleton />
       ) : aiResults ? (
@@ -307,7 +295,6 @@ export default function DiscoverPage() {
             })}
           </div>
 
-          {/* Infinite scroll sentinel */}
           <div ref={sentinelRef} className="h-4" aria-hidden="true" />
           {isFetchingNextPage && (
             <div className="flex justify-center py-6">

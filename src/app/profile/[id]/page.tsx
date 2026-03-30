@@ -10,7 +10,6 @@ import {
   MoreVertical,
   ShieldAlert,
   Octagon,
-  Send,
   MapPin,
   Ruler,
   Pencil,
@@ -34,7 +33,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { createClient, transformToCamel } from '@/lib/supabase-client';
+import { createClient, transformToCamel } from '@/lib/supabase/client';
 import { useUser } from '@/hooks/use-user';
 import type { UserProfile } from '@/lib/types';
 
@@ -43,7 +42,7 @@ async function fetchProfile(userId: string): Promise<UserProfile | null> {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
-    .eq('user_id', userId) // ✅ snake_case
+    .eq('user_id', userId)
     .single();
   if (error && error.code !== 'PGRST116') throw new Error(error.message);
   return data ? transformToCamel<UserProfile>(data) : null;
@@ -89,7 +88,6 @@ export default function UserProfilePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  // Next.js 15 async params
   const { id: profileUserId } = use(params);
   const { user: currentUser } = useUser();
   const router = useRouter();
@@ -157,8 +155,8 @@ export default function UserProfilePage({
     const { error } = await supabase.from('conversations').upsert(
       {
         id: conversationId,
-        participant1_id: currentUser.id,   // ✅ snake_case
-        participant2_id: profileUserId,     // ✅ snake_case
+        participant1_id: currentUser.id,
+        participant2_id: profileUserId,
         last_message_at: new Date().toISOString(),
       },
       { onConflict: 'id', ignoreDuplicates: true }
@@ -222,7 +220,6 @@ export default function UserProfilePage({
         </Button>
       </div>
 
-      {/* Hero */}
       <section className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8">
         <div className="relative shrink-0">
           <Avatar className="w-32 h-32 border-4 border-primary shadow-lg">
@@ -319,7 +316,6 @@ export default function UserProfilePage({
       <Separator className="mb-8" />
 
       <div className="space-y-6">
-        {/* Bio */}
         {profile.bio && (
           <section aria-labelledby="bio-heading">
             <Card className="bg-card/80">
@@ -335,7 +331,6 @@ export default function UserProfilePage({
           </section>
         )}
 
-        {/* Interests */}
         {profile.interests && profile.interests.length > 0 && (
           <section aria-labelledby="interests-heading">
             <Card className="bg-card/80">
@@ -355,7 +350,6 @@ export default function UserProfilePage({
           </section>
         )}
 
-        {/* Photos grid */}
         {profile.avatarUrl && (
           <section aria-labelledby="photos-heading">
             <Card className="bg-card/80">

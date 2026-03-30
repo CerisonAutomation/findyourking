@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@/hooks/use-user';
-import { createClient, transformToCamel } from '@/lib/supabase-client';
+import { createClient, transformToCamel } from '@/lib/supabase/client';
 import { ProfileCard } from '@/components/profile-card';
 import { Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ async function fetchFavoriteProfiles(userId: string): Promise<UserProfile[]> {
     .from('favorites')
     .select('favorited_user_id')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false }); // ✅ most-recently-added first
+    .order('created_at', { ascending: false });
 
   if (favError) throw new Error(favError.message);
   if (!favRows || favRows.length === 0) return [];
@@ -27,7 +27,7 @@ async function fetchFavoriteProfiles(userId: string): Promise<UserProfile[]> {
   const { data: profiles, error: profileError } = await supabase
     .from('profiles')
     .select('*')
-    .in('user_id', ids); // ✅ snake_case
+    .in('user_id', ids);
 
   if (profileError) throw new Error(profileError.message);
 
@@ -65,22 +65,20 @@ export default function FavoritesPage() {
     if (!user) return;
     const supabase = createClient();
 
-    // Optimistic update
     queryClient.setQueryData<UserProfile[]>(
       ['favorites', user.id],
       (old) => (old ?? []).filter((p) => p.userId !== favoritedUserId)
     );
 
-    const { error } = await supabase
+    const { error: removeError } = await supabase
       .from('favorites')
       .delete()
       .eq('user_id', user.id)
       .eq('favorited_user_id', favoritedUserId);
 
-    if (error) {
-      // Rollback
+    if (removeError) {
       await queryClient.invalidateQueries({ queryKey: ['favorites', user.id] });
-      toast.error('Could not remove favorite', { description: error.message });
+      toast.error('Could not remove favorite', { description: removeError.message });
     } else {
       toast.success('Removed from favorites');
     }

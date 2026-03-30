@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import { useUser } from '@/hooks/use-user';
-import { createClient, transformToCamel } from '@/lib/supabase-client';
+import { createClient, transformToCamel } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -37,13 +37,13 @@ async function fetchBookings(userId: string): Promise<{
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
-    .eq('user_id', userId) // ✅ snake_case
+    .eq('user_id', userId)
     .single();
 
   const userRole: 'seeker' | 'provider' =
     profile?.role === 'provider' ? 'provider' : 'seeker';
 
-  const query = supabase
+  const { data, error } = await supabase
     .from('bookings')
     .select(
       `
@@ -55,7 +55,6 @@ async function fetchBookings(userId: string): Promise<{
     .eq(userRole === 'seeker' ? 'seeker_id' : 'provider_id', userId)
     .order('date', { ascending: false });
 
-  const { data, error } = await query;
   if (error) throw new Error(error.message);
 
   return {
@@ -154,38 +153,22 @@ function BookingCard({
           <p className="text-muted-foreground mt-2 border-t pt-2">{booking.notes}</p>
         )}
 
-        {/* Provider actions */}
         {status === 'pending' && userRole === 'provider' && (
           <div className="flex gap-2 pt-2">
-            <Button
-              size="sm"
-              onClick={() => onStatusChange(booking.id, 'confirmed')}
-              aria-label="Accept booking"
-            >
+            <Button size="sm" onClick={() => onStatusChange(booking.id, 'confirmed')} aria-label="Accept booking">
               <CheckCircle className="mr-2 size-4" />
               Accept
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onStatusChange(booking.id, 'cancelled')}
-              aria-label="Decline booking"
-            >
+            <Button size="sm" variant="outline" onClick={() => onStatusChange(booking.id, 'cancelled')} aria-label="Decline booking">
               <XCircle className="mr-2 size-4" />
               Decline
             </Button>
           </div>
         )}
 
-        {/* Seeker cancel */}
         {status === 'pending' && userRole === 'seeker' && (
           <div className="flex gap-2 pt-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onStatusChange(booking.id, 'cancelled')}
-              aria-label="Cancel booking request"
-            >
+            <Button size="sm" variant="outline" onClick={() => onStatusChange(booking.id, 'cancelled')} aria-label="Cancel booking request">
               <XCircle className="mr-2 size-4" />
               Cancel Request
             </Button>
@@ -194,12 +177,7 @@ function BookingCard({
 
         {status === 'confirmed' && (
           <div className="flex gap-2 pt-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled
-              aria-label="Reschedule (coming soon)"
-            >
+            <Button size="sm" variant="outline" disabled aria-label="Reschedule (coming soon)">
               <CalendarClock className="mr-2 size-4" />
               Reschedule
             </Button>
@@ -214,11 +192,7 @@ export default function BookingsPage() {
   const { user } = useUser();
   const queryClient = useQueryClient();
 
-  const {
-    data,
-    isLoading,
-    error,
-  } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['bookings', user?.id],
     queryFn: () => fetchBookings(user!.id),
     enabled: !!user,
@@ -242,12 +216,7 @@ export default function BookingsPage() {
         ['bookings', user?.id],
         (old) =>
           old
-            ? {
-                ...old,
-                bookings: old.bookings.map((b) =>
-                  b.id === id ? { ...b, status } : b
-                ),
-              }
+            ? { ...old, bookings: old.bookings.map((b) => b.id === id ? { ...b, status } : b) }
             : old
       );
       return { previous };
@@ -258,19 +227,15 @@ export default function BookingsPage() {
     },
     onSuccess: (_data, { status }) => {
       toast.success(
-        status === 'confirmed'
-          ? 'Booking accepted!'
-          : status === 'cancelled'
-          ? 'Booking cancelled.'
-          : 'Booking updated.'
+        status === 'confirmed' ? 'Booking accepted!'
+        : status === 'cancelled' ? 'Booking cancelled.'
+        : 'Booking updated.'
       );
     },
   });
 
   const handleStatusChange = useCallback(
-    (id: string, status: BookingStatus) => {
-      statusMutation.mutate({ id, status });
-    },
+    (id: string, status: BookingStatus) => statusMutation.mutate({ id, status }),
     [statusMutation]
   );
 
@@ -289,16 +254,12 @@ export default function BookingsPage() {
     <div className="p-4 md:p-6">
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">My Bookings</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Manage your appointments and schedules
-        </p>
+        <p className="text-muted-foreground mt-1 text-sm">Manage your appointments and schedules</p>
       </div>
 
       {isLoading ? (
         <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <BookingCardSkeleton key={i} />
-          ))}
+          {Array.from({ length: 3 }).map((_, i) => <BookingCardSkeleton key={i} />)}
         </div>
       ) : error ? (
         <div className="flex items-center gap-2 text-destructive text-sm p-4 border border-destructive/30 rounded-lg">

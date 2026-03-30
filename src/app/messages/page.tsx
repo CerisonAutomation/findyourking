@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useUser } from '@/hooks/use-user';
-import { createClient, transformToCamel } from '@/lib/supabase-client';
+import { createClient, transformToCamel } from '@/lib/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { MessageSquarePlus, Search, Loader2 } from 'lucide-react';
@@ -35,9 +35,7 @@ async function fetchConversations(userId: string): Promise<Conversation[]> {
   const { data, error } = await supabase.rpc('get_user_conversations', {
     p_user_id: userId,
   });
-  if (error) {
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
   return (data as RpcConversationRow[]).map((c) => ({
     id: c.conversation_id,
     otherUser: {
@@ -73,12 +71,19 @@ export default function MessagesPage() {
   const { user, isLoading: isUserLoading } = useUser();
   const [search, setSearch] = useState('');
 
-  const { data: conversations = [], isLoading, error } = useQuery({
+  const {
+    data: conversations = [],
+    isLoading,
+    error,
+  } = useQuery<Conversation[], Error>({
     queryKey: ['conversations', user?.id],
     queryFn: () => fetchConversations(user!.id),
     enabled: !!user,
-    onError: (err: Error) => toast.error('Could not load conversations', { description: err.message }),
-  } as Parameters<typeof useQuery>[0]);
+    meta: {
+      onError: (err: Error) =>
+        toast.error('Could not load conversations', { description: err.message }),
+    },
+  });
 
   const filtered = useMemo(() => {
     if (!search.trim()) return conversations;
@@ -139,10 +144,7 @@ export default function MessagesPage() {
           </p>
         </div>
       ) : (
-        <nav
-          className="flex-1 overflow-y-auto"
-          aria-label="Conversation list"
-        >
+        <nav className="flex-1 overflow-y-auto" aria-label="Conversation list">
           <ul role="list">
             {filtered.map((convo) => (
               <li key={convo.id}>
@@ -166,7 +168,6 @@ export default function MessagesPage() {
                         {(convo.otherUser.id ?? 'U').charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    {/* Online dot — statically rendered; presence is handled via Realtime in chat view */}
                   </div>
 
                   <div className="flex-1 overflow-hidden">
@@ -192,9 +193,7 @@ export default function MessagesPage() {
                       <p
                         className={cn(
                           'text-sm truncate',
-                          convo.unreadCount > 0
-                            ? 'text-foreground'
-                            : 'text-muted-foreground'
+                          convo.unreadCount > 0 ? 'text-foreground' : 'text-muted-foreground'
                         )}
                       >
                         {convo.lastMessage?.content ?? 'No messages yet'}

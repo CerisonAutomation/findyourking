@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase-server';
+import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { AccountForm } from './account-form';
 import {
@@ -12,7 +12,7 @@ import { UpdateEmailCard } from './update-email-card';
 import { UpdatePasswordCard } from './update-password-card';
 
 export default async function Account() {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const {
     data: { user },
@@ -25,7 +25,7 @@ export default async function Account() {
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
-    .eq('userId', user.id)
+    .eq('user_id', user.id)
     .single();
 
   return (
@@ -48,7 +48,7 @@ export default async function Account() {
           <AccountForm user={user} profile={profile} />
         </CardContent>
       </Card>
-      
+
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
         <UpdateEmailCard email={user.email!} />
         <UpdatePasswordCard />

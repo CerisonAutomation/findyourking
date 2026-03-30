@@ -25,7 +25,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { createClient } from '@/lib/supabase-client';
+import { createClient } from '@/lib/supabase/client';
 
 const initialOnboardingState: OnboardingState = {
   id: null,
@@ -125,14 +125,14 @@ export default function OnboardingPage() {
     const supabase = createClient();
     try {
       const profileData = {
-        user_id: user.id,                         // ✅ snake_case
+        user_id: user.id,
         id: onboardingState.id,
         age: onboardingState.age,
         location: onboardingState.location,
         height: onboardingState.height,
         interests: onboardingState.interests,
         bio: onboardingState.bio,
-        avatar_url:                               // ✅ snake_case
+        avatar_url:
           user.user_metadata?.avatar_url ??
           `https://picsum.photos/seed/${user.id}/600/800`,
         onboarded: true,
@@ -140,7 +140,7 @@ export default function OnboardingPage() {
 
       const { error } = await supabase
         .from('profiles')
-        .upsert(profileData, { onConflict: 'user_id' }); // ✅ snake_case conflict target
+        .upsert(profileData, { onConflict: 'user_id' });
 
       if (error) throw error;
 
