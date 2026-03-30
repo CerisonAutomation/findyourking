@@ -6,15 +6,17 @@ import {
   useEffect,
   useState,
   useCallback,
+  useMemo,
   type ReactNode,
 } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase-client';
 
 interface UserContextValue {
+  /** Verified server-side user — never stale from client cookie */
   user: User | null;
   isLoading: boolean;
-  /** Force re-fetch the auth user (e.g. after profile update) */
+  /** Force re-verify auth (e.g. after OAuth redirect or profile update) */
   refresh: () => Promise<void>;
 }
 
@@ -23,35 +25,46 @@ const UserContext = createContext<UserContextValue | undefined>(undefined);
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient(); // singleton — safe
+  // Stable singleton — never recreated
+  const supabase = useMemo(() => createClient(), []);
 
   const refresh = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setUser(user ?? null);
+    const { data: { user: freshUser } } = await supabase.auth.getUser();
+    setUser(freshUser ?? null);
   }, [supabase]);
 
   useEffect(() => {
-    // getUser() hits the auth server — cryptographically verified (unlike getSession)
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user ?? null);
-      setIsLoading(false);
+    let mounted = true;
+
+    // getUser() calls the auth server — cryptographically verified
+    supabase.auth.getUser().then(({ data: { user: u } }) => {
+      if (mounted) {
+        setUser(u ?? null);
+        setIsLoading(false);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        setUser(session?.user ?? null);
-        setIsLoading(false);
-      }
+        if (mounted) {
+          setUser(session?.user ?? null);
+          setIsLoading(false);
+        }
+      },
     );
 
-    return () => subscription.unsubscribe();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
 
-  return (
-    <UserContext.Provider value={{ user, isLoading, refresh }}>
-      {children}
-    </UserContext.Provider>
+  const value = useMemo(
+    () => ({ user, isLoading, refresh }),
+    [user, isLoading, refresh],
   );
+
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
 
 export function useUser(): UserContextValue {

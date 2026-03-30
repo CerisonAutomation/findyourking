@@ -1,28 +1,17 @@
-import { useState, useEffect } from "react"
+import { useEffect, useState } from 'react';
 
-const MOBILE_BREAKPOINT = 768
+const MOBILE_BREAKPOINT = 768;
 
 export function useIsMobile(): boolean {
-  const [isMobile, setIsMobile] = useState(true); // Default to mobile for SSR
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    // Ensure this code runs only in the browser
-    if (typeof window === 'undefined') {
-        return;
-    }
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    setIsMobile(mql.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
 
-    const checkDevice = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    }
-
-    // Initial check on mount
-    checkDevice();
-
-    window.addEventListener("resize", checkDevice)
-    
-    // Cleanup listener on unmount
-    return () => window.removeEventListener("resize", checkDevice)
-  }, [])
-
-  return isMobile
+  return isMobile;
 }

@@ -1,29 +1,37 @@
 'use client';
 
-import { useState } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider } from '@/components/theme-provider';
+import { type ReactNode } from 'react';
+import { ThemeProvider } from 'next-themes';
+import { Toaster } from 'sonner';
+import { QueryProvider } from '@/providers/query-provider';
 import { UserProvider } from '@/hooks/use-user';
 
-const defaultQueryOptions = {
-  queries: {
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 10,
-    retry: 1,
-    refetchOnWindowFocus: false,
-  },
-};
-
-export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () => new QueryClient({ defaultOptions: defaultQueryOptions })
-  );
-
+/**
+ * Unified root provider tree.
+ * Order matters: ThemeProvider → QueryProvider → UserProvider → children.
+ */
+export function Providers({ children }: { children: ReactNode }) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-        <UserProvider>{children}</UserProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="dark"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <QueryProvider>
+        <UserProvider>
+          {children}
+          <Toaster
+            richColors
+            position="top-right"
+            toastOptions={{
+              classNames: {
+                toast: 'font-sans text-sm',
+              },
+            }}
+          />
+        </UserProvider>
+      </QueryProvider>
+    </ThemeProvider>
   );
 }

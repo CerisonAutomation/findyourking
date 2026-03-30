@@ -1,31 +1,36 @@
+import Link from 'next/link';
+import { Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { SVGProps } from 'react';
 
-export const CrownIcon = (props: SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" />
-  </svg>
-);
+interface LogoProps {
+  className?: string;
+  iconOnly?: boolean;
+}
 
-
-export function Logo({ className }: { className?: string }) {
+/**
+ * Find Your King wordmark + crown icon.
+ * Renders as a home link; pass iconOnly=true for compact sidebar state.
+ */
+export function Logo({ className, iconOnly = false }: LogoProps) {
   return (
-    <div className={cn('flex items-center gap-2 text-primary', className)}>
-      <CrownIcon className="size-6 text-foreground fill-current" />
-      <span className="text-lg font-bold tracking-tight text-foreground">
-        FYKING
-      </span>
-    </div>
+    <Link
+      href="/"
+      className={cn(
+        'flex items-center gap-2 font-bold tracking-tight text-foreground hover:text-primary transition-colors',
+        className,
+      )}
+      aria-label="Find Your King — Home"
+    >
+      <Crown
+        className="size-6 text-primary flex-shrink-0"
+        aria-hidden="true"
+        strokeWidth={2.5}
+      />
+      {!iconOnly && (
+        <span className="text-sm font-semibold">
+          Find Your <span className="text-primary">King</span>
+        </span>
+      )}
+    </Link>
   );
 }

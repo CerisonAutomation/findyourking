@@ -1,3 +1,4 @@
+import type { InferSelectModel } from 'drizzle-orm';
 import type {
   profiles,
   users,
@@ -11,15 +12,16 @@ import type {
   tribes,
   interests,
 } from '@/db/schema';
-import type { InferSelectModel } from 'drizzle-orm';
 
-// ---------------------------------------------------------------------------
-// Drizzle-inferred types (source of truth when schema is present)
-// ---------------------------------------------------------------------------
+// ─── Drizzle source-of-truth types ───────────────────────────────────────────
 export type User = InferSelectModel<typeof users>;
 export type UserProfile = InferSelectModel<typeof profiles> & {
-  /** Structured location — either a JSON object from the DB or a plain string */
+  /** Structured geo-location — object or legacy string, nullable */
   location?: string | { latitude: number; longitude: number; city?: string } | null;
+  /** Computed from DB */
+  age?: number | null;
+  /** Computed / virtual */
+  distanceMiles?: number;
 };
 export type Message = InferSelectModel<typeof messages>;
 export type MeetNowCard = InferSelectModel<typeof meetNowCards>;
@@ -31,11 +33,7 @@ export type AdminSetting = InferSelectModel<typeof adminSettings>;
 export type Tribe = InferSelectModel<typeof tribes>;
 export type Interest = InferSelectModel<typeof interests>;
 
-// ---------------------------------------------------------------------------
-// Derived union types used across the app
-// ---------------------------------------------------------------------------
-
-/** All possible booking statuses stored in the DB */
+// ─── Booking statuses ────────────────────────────────────────────────────────
 export type BookingStatus =
   | 'pending'
   | 'confirmed'
@@ -43,17 +41,10 @@ export type BookingStatus =
   | 'completed'
   | 'cancelled';
 
-/** Application-level user roles */
+// ─── Role union ───────────────────────────────────────────────────────────────
 export type UserRole = 'user' | 'seeker' | 'provider' | 'admin';
 
-// ---------------------------------------------------------------------------
-// RPC / Realtime row shapes (returned by Supabase RPCs, not Drizzle)
-// ---------------------------------------------------------------------------
-
-/**
- * Row shape returned by the `get_user_conversations` Supabase RPC.
- * Column names are snake_case as returned by PostgreSQL.
- */
+// ─── Supabase RPC shapes (snake_case as returned by PostgreSQL) ───────────────
 export interface RpcConversationRow {
   conversation_id: string;
   other_user_id: string;
@@ -64,10 +55,6 @@ export interface RpcConversationRow {
   unread_count: number;
 }
 
-/**
- * A single chat message as stored in the `messages` table.
- * Used by the chat view for realtime rendering.
- */
 export interface ConversationMessage {
   id: string;
   conversationId: string;
@@ -76,3 +63,28 @@ export interface ConversationMessage {
   createdAt: string;
   isRead: boolean;
 }
+
+// ─── Pagination ───────────────────────────────────────────────────────────────
+export interface PaginatedResult<T> {
+  data: T[];
+  hasMore: boolean;
+  total: number;
+  page: number;
+}
+
+// ─── Discover filters ─────────────────────────────────────────────────────────
+export interface DiscoverFilters {
+  ageRange: [number, number];
+  distanceMiles: number;
+  tribes: string[];
+  interests: string[];
+  onlineOnly: boolean;
+}
+
+export const DEFAULT_DISCOVER_FILTERS: DiscoverFilters = {
+  ageRange: [18, 65],
+  distanceMiles: 50,
+  tribes: [],
+  interests: [],
+  onlineOnly: false,
+};

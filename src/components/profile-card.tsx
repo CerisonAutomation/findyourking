@@ -1,155 +1,177 @@
 'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Heart, MessageCircle, MapPin } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Heart, MessageCircle, MapPin, Crown } from 'lucide-react';
+import { useOptimistic, useTransition, memo } from 'react';
+import { toast } from 'sonner';
 
 import type { UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useUser } from '@/hooks/use-user';
-import { createClient } from '@/lib/supabase-client';
-import { toast } from 'sonner';
+import { toggleFavorite } from '@/lib/actions/favorites';
+import { cn } from '@/lib/utils';
 
 interface ProfileCardProps {
   user: UserProfile;
   matchScore?: number;
   isOnline?: boolean;
-  distance?: number;
+  distanceMiles?: number;
   isFavorite?: boolean;
-  onToggleFavorite?: () => void;
+  onFavoriteChange?: (userId: string, isFav: boolean) => void;
 }
 
-export function ProfileCard({
+/**
+ * Premium profile card with optimistic favorite toggle (Server Action),
+ * inline message CTA, match score badge, online pulse, and distance label.
+ * Fully keyboard + screen-reader accessible.
+ */
+export const ProfileCard = memo(function ProfileCard({
   user: profileUser,
   matchScore,
   isOnline,
-  distance,
-  isFavorite: initialIsFavorite,
-  onToggleFavorite,
+  distanceMiles,
+  isFavorite: initialFavorite = false,
+  onFavoriteChange,
 }: ProfileCardProps) {
   const { user: currentUser } = useUser();
   const router = useRouter();
-  const [isFavorite, setIsFavorite] = useState(initialIsFavorite ?? false);
+  const [isPending, startTransition] = useTransition();
+  const [optimisticFav, setOptimisticFav] = useOptimistic(initialFavorite);
 
-  useEffect(() => {
-    setIsFavorite(initialIsFavorite ?? false);
-  }, [initialIsFavorite]);
+  const profileId = (profileUser as UserProfile & { userId?: string }).userId
+    ?? (profileUser as UserProfile & { user_id?: string }).user_id;
+  const displayName = (profileUser as UserProfile & { displayName?: string }).displayName
+    ?? (profileUser as UserProfile & { id?: string }).id
+    ?? 'King';
+  const avatarSrc = (profileUser as UserProfile & { avatarUrl?: string }).avatarUrl
+    ?? `https://picsum.photos/seed/${profileId}/600/800`;
+  const age = profileUser.age;
+  const isSelf = currentUser?.id === profileId;
 
-  const handleStartConversation = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  function handleMessage(e: React.MouseEvent) {
     e.preventDefault();
-    if (!currentUser || !profileUser.userId || currentUser.id === profileUser.userId) return;
-    router.push(`/messages/${profileUser.userId}`);
-  };
-
-  const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!currentUser || isSelf || !profileId) return;
+    router.push(`/messages/${profileId}`);
+  }
+
+  function handleToggleFavorite(e: React.MouseEvent) {
     e.preventDefault();
-    if (!currentUser || !profileUser.userId || currentUser.id === profileUser.userId) return;
+    e.stopPropagation();
+    if (!currentUser || isSelf || !profileId) return;
 
-    const supabase = createClient(); // singleton — no new instance per call
-
-    try {
-      if (isFavorite) {
-        const { error } = await supabase
-          .from('favorites')
-          .delete()
-          .eq('user_id', currentUser.id)              // ✅ snake_case
-          .eq('favorited_user_id', profileUser.userId); // ✅ snake_case
-        if (error) throw error;
-        setIsFavorite(false);
-        toast.success('Removed from favorites');
-        onToggleFavorite?.();
+    startTransition(async () => {
+      const nextFav = !optimisticFav;
+      setOptimisticFav(nextFav);
+      const result = await toggleFavorite(profileId);
+      if ('error' in result) {
+        toast.error('Could not update favorites', { description: result.error });
+        setOptimisticFav(optimisticFav); // rollback
       } else {
-        const { error } = await supabase
-          .from('favorites')
-          .insert({
-            user_id: currentUser.id,                   // ✅ snake_case
-            favorited_user_id: profileUser.userId,     // ✅ snake_case
-          });
-        if (error) throw error;
-        setIsFavorite(true);
-        toast.success('Added to favorites');
-        onToggleFavorite?.();
+        toast.success(result.favorited ? '❤️ Added to favorites' : 'Removed from favorites');
+        onFavoriteChange?.(profileId, result.favorited);
       }
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-      toast.error('Failed to update favorites');
-    }
-  };
+    });
+  }
 
-  if (!profileUser?.userId) return null;
+  if (!profileId) return null;
 
   return (
-    <Link href={`/profile/${profileUser.userId}`} className="block group">
-      <Card className="overflow-hidden h-full transition-all duration-300 ease-in-out hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1">
+    <Link
+      href={`/profile/${profileId}`}
+      className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl"
+      aria-label={`View ${displayName}'s profile`}
+    >
+      <Card className="overflow-hidden h-full border-0 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/15 hover:-translate-y-1 focus-within:ring-2 focus-within:ring-primary">
         <CardContent className="p-0">
           <div className="relative aspect-[3/4]">
+            {/* Profile image */}
             <Image
-              src={
-                profileUser.avatarUrl ??
-                `https://picsum.photos/seed/${profileUser.userId}/600/800`
-              }
-              alt={profileUser.id ?? 'User profile'}
+              src={avatarSrc}
+              alt={`${displayName}, ${age ? age + ' years old' : ''}`}
               fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+              loading="lazy"
             />
+
+            {/* Match score badge */}
             {matchScore !== undefined && (
-              <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs font-bold py-1 px-2 rounded-full">
-                {matchScore}% Match
+              <div
+                className="absolute top-2 left-2 flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white text-xs font-bold py-1 px-2 rounded-full"
+                aria-label={`${matchScore}% match`}
+              >
+                <Crown className="size-3 text-yellow-400" aria-hidden="true" />
+                {matchScore}%
               </div>
             )}
+
+            {/* Gradient overlay */}
             <div
-              className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"
+              className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent"
               aria-hidden="true"
             />
-            <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <Button
-                size="icon"
-                variant="secondary"
-                className={`rounded-full h-10 w-10 bg-black/50 text-white hover:bg-primary ${
-                  isFavorite ? 'text-red-500' : ''
-                }`}
-                onClick={handleToggleFavorite}
-                disabled={!currentUser || currentUser.id === profileUser.userId}
-                aria-label={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
-              >
-                <Heart className={`size-5 ${isFavorite ? 'fill-current' : ''}`} />
-              </Button>
-              <Button
-                size="icon"
-                variant="secondary"
-                className="rounded-full h-10 w-10 bg-black/50 text-white hover:bg-primary"
-                onClick={handleStartConversation}
-                disabled={!currentUser || currentUser.id === profileUser.userId}
-                aria-label="Send Message"
-              >
-                <MessageCircle className="size-5" />
-              </Button>
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-              <div className="flex items-baseline gap-2">
-                <h3 className="font-bold text-lg truncate">{profileUser.id}</h3>
-                <p className="text-base">{profileUser.age}</p>
+
+            {/* Action buttons — visible on hover / focus-within */}
+            {!isSelf && currentUser && (
+              <div className="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200">
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className={cn(
+                    'rounded-full size-9 bg-black/60 text-white backdrop-blur-sm hover:bg-primary',
+                    optimisticFav && 'text-rose-400 hover:text-rose-400',
+                  )}
+                  onClick={handleToggleFavorite}
+                  disabled={isPending}
+                  aria-label={optimisticFav ? 'Remove from favorites' : 'Add to favorites'}
+                  aria-pressed={optimisticFav}
+                >
+                  <Heart
+                    className={cn('size-4', optimisticFav && 'fill-current')}
+                    aria-hidden="true"
+                  />
+                </Button>
+
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="rounded-full size-9 bg-black/60 text-white backdrop-blur-sm hover:bg-primary"
+                  onClick={handleMessage}
+                  aria-label={`Message ${displayName}`}
+                >
+                  <MessageCircle className="size-4" aria-hidden="true" />
+                </Button>
               </div>
-              <div className="flex items-center gap-4 text-xs text-neutral-300 mt-1">
+            )}
+
+            {/* Profile info */}
+            <div className="absolute bottom-0 inset-x-0 p-3 text-white">
+              <div className="flex items-baseline gap-2">
+                <h3 className="font-bold text-base leading-tight truncate">{displayName}</h3>
+                {age && <span className="text-sm opacity-90">{age}</span>}
+              </div>
+
+              <div className="flex items-center gap-3 mt-1 text-xs text-white/70">
                 {isOnline && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                  <span className="flex items-center gap-1" aria-label="Online now">
+                    <span className="relative flex size-2">
+                      <span className="animate-ping absolute inline-flex size-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
                     </span>
                     Online
-                  </div>
+                  </span>
                 )}
-                {distance !== undefined && (
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="size-3" />
-                    {distance.toFixed(1)} miles away
-                  </div>
+                {distanceMiles !== undefined && distanceMiles < Infinity && (
+                  <span className="flex items-center gap-1">
+                    <MapPin className="size-3" aria-hidden="true" />
+                    {distanceMiles < 1
+                      ? 'Less than 1 mi'
+                      : `${distanceMiles.toFixed(1)} mi`}
+                  </span>
                 )}
               </div>
             </div>
@@ -158,4 +180,4 @@ export function ProfileCard({
       </Card>
     </Link>
   );
-}
+});

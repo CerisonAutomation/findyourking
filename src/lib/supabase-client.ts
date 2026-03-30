@@ -1,45 +1,37 @@
-'use client';
-
 import { createBrowserClient } from '@supabase/ssr';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/types';
 
-let _instance: SupabaseClient | null = null;
+let client: ReturnType<typeof createBrowserClient<Database>> | undefined;
 
-/** Singleton browser Supabase client — safe to call multiple times */
-export function createClient(): SupabaseClient {
-  if (_instance) return _instance;
-  _instance = createBrowserClient(
+/**
+ * Singleton Supabase browser client.
+ * Safe to call multiple times — always returns the same instance.
+ */
+export function createClient(): ReturnType<typeof createBrowserClient<Database>> {
+  if (client) return client;
+  client = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
-  return _instance;
+  return client;
 }
 
-/** Convert snake_case keys to camelCase (for Supabase read results → Drizzle types) */
-function toCamel(s: string): string {
-  return s.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
-}
-
-export function transformToCamel<T>(obj: unknown): T {
-  if (Array.isArray(obj)) return obj.map((item) => transformToCamel(item)) as unknown as T;
-  if (obj !== null && typeof obj === 'object') {
-    return Object.fromEntries(
-      Object.entries(obj as Record<string, unknown>).map(([k, v]) => [
-        toCamel(k),
-        transformToCamel(v),
-      ])
-    ) as T;
+/**
+ * Convert snake_case DB row keys to camelCase for the frontend.
+ * Handles nested objects and arrays recursively.
+ */
+export function transformToCamel<T>(obj: Record<string, unknown>): T {
+  if (Array.isArray(obj)) {
+    return obj.map((item) =>
+      item && typeof item === 'object' ? transformToCamel(item as Record<string, unknown>) : item,
+    ) as unknown as T;
   }
-  return obj as T;
-}
-
-/** Convert camelCase keys to snake_case (for Supabase write payloads) */
-function toSnake(s: string): string {
-  return s.replace(/([A-Z])/g, (c) => `_${c.toLowerCase()}`);
-}
-
-export function transformToSnake(obj: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(obj).map(([k, v]) => [toSnake(k), v])
-  );
+    Object.entries(obj).map(([key, value]) => [
+      key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase()),
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? transformToCamel(value as Record<string, unknown>)
+        : value,
+    ]),
+  ) as T;
 }

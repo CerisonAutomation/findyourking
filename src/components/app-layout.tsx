@@ -31,73 +31,56 @@ import {
 import { Logo } from './logo';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { useUser } from '@/hooks/use-user';
-import { createClient, transformToCamel } from '@/lib/supabase-client';
-import { useQuery } from '@tanstack/react-query';
+import { useProfile } from '@/hooks/use-profile';
+import { createClient } from '@/lib/supabase-client';
 import type { UserProfile } from '@/lib/types';
-import { AiKingDock } from '@/components/ai-king-dock';
 
+// Lazy-loaded heavy components
+const AiKingDock = React.lazy(() =>
+  import('@/components/ai-king-dock').then((m) => ({ default: m.AiKingDock })),
+);
 const QuantumAvatarDock = React.lazy(() =>
-  import('@/components/quantum-avatar-dock').then((mod) => ({ default: mod.default }))
+  import('@/components/quantum-avatar-dock').then((m) => ({ default: m.default })),
 );
 
-async function fetchUserProfile(userId?: string): Promise<UserProfile | null> {
-  if (!userId) return null;
-  const supabase = createClient();
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', userId) // ✅ snake_case DB column
-      .single();
+// ─── Nav items ────────────────────────────────────────────────────────────────
+type NavItem = { href: string; label: string; icon: React.ElementType };
 
-    if (error && error.code !== 'PGRST116') {
-      throw new Error(error.message, { cause: error });
-    }
-    return data ? transformToCamel<UserProfile>(data) : null;
-  } catch (error) {
-    console.error('Error fetching user profile:', error);
-    return null;
-  }
-}
+const BASE_NAV: readonly NavItem[] = [
+  { href: '/discover',       label: 'Discover',     icon: LayoutGrid    },
+  { href: '/favorites',      label: 'Favorites',    icon: Sparkles      },
+  { href: '/meet-now',       label: 'Meet Now',     icon: Zap           },
+  { href: '/bookings',       label: 'Bookings',     icon: Calendar      },
+  { href: '/messages',       label: 'Messages',     icon: MessageSquare },
+  { href: '/photo-curation', label: 'Photo Oracle', icon: Wand2         },
+] as const;
 
+// ─── Auth + onboarding guard ──────────────────────────────────────────────────
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading: isUserLoading } = useUser();
-  const { data: profile, isLoading: isProfileLoading } = useQuery({
-    queryKey: ['userProfile', user?.id],
-    queryFn: () => fetchUserProfile(user?.id),
-    enabled: !!user,
-    staleTime: 1000 * 60 * 5,
-  });
+  const { data: profile, isLoading: isProfileLoading } = useProfile(user?.id);
   const router = useRouter();
 
   useEffect(() => {
     if (isUserLoading || (user && isProfileLoading)) return;
     if (!user) {
       router.replace('/login');
-    } else if (user && profile !== undefined && !profile?.onboarded) {
+      return;
+    }
+    if (profile !== undefined && profile !== null && !profile.onboarded) {
       router.replace('/onboarding');
     }
   }, [user, profile, isUserLoading, isProfileLoading, router]);
 
-  if (isUserLoading || (user && (isProfileLoading || profile === undefined))) {
-    return <RootPageLoader />;
-  }
-  if (!user || !profile?.onboarded) {
-    return <RootPageLoader />;
-  }
+  const isSettling = isUserLoading || (user && (isProfileLoading || profile === undefined));
+  const isBlocked = !user || (profile !== undefined && !profile?.onboarded);
 
-  return <AppShell profile={profile}>{children}</AppShell>;
+  if (isSettling || isBlocked) return <RootPageLoader />;
+
+  return <AppShell profile={profile!}>{children}</AppShell>;
 }
 
-const NAV_ITEMS = [
-  { href: '/discover',       label: 'Discover',     icon: LayoutGrid   },
-  { href: '/favorites',      label: 'Favorites',    icon: Sparkles     },
-  { href: '/meet-now',       label: 'Meet Now',     icon: Zap          },
-  { href: '/bookings',       label: 'Bookings',     icon: Calendar     },
-  { href: '/messages',       label: 'Messages',     icon: MessageSquare },
-  { href: '/photo-curation', label: 'Photo Oracle', icon: Wand2        },
-] as const;
-
+// ─── App shell ────────────────────────────────────────────────────────────────
 function AppShell({
   children,
   profile,
@@ -113,13 +96,17 @@ function AppShell({
     router.push('/login');
   };
 
-  const navItems = useMemo(() => {
-    const items = [...NAV_ITEMS] as Array<{ href: string; label: string; icon: React.ElementType }>;
-    if (profile?.role === 'admin') {
+  const navItems = useMemo<NavItem[]>(() => {
+    const items: NavItem[] = [...BASE_NAV];
+    if (profile.role === 'admin') {
       items.push({ href: '/admin', label: 'Admin', icon: Shield });
     }
     return items;
-  }, [profile?.role]);
+  }, [profile.role]);
+
+  const displayName = (profile as UserProfile & { displayName?: string }).displayName
+    ?? (profile as UserProfile & { id?: string }).id
+    ?? 'Account';
 
   return (
     <SidebarProvider>
@@ -141,7 +128,7 @@ function AppShell({
                     isActive={pathname.startsWith(item.href)}
                     tooltip={{ children: item.label }}
                   >
-                    <Link href={item.href} aria-label={item.label}>
+                    <Link href={item.href}>
                       <item.icon aria-hidden="true" />
                       <span>{item.label}</span>
                     </Link>
@@ -154,48 +141,46 @@ function AppShell({
 
         <SidebarFooter className="p-2">
           <SidebarMenu>
-            {profile ? (
-              <>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === '/account'}
-                    tooltip={{ children: 'Account' }}
-                  >
-                    <Link href="/account">
-                      <Avatar className="size-6">
-                        <AvatarImage src={profile.avatarUrl ?? undefined} alt={profile.id ?? ''} />
-                        <AvatarFallback><UserIcon className="size-3" /></AvatarFallback>
-                      </Avatar>
-                      <span className="truncate">{profile.id ?? 'Account'}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton onClick={handleLogout} tooltip={{ children: 'Sign out' }}>
-                    <LogOut aria-hidden="true" />
-                    <span>Sign out</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </>
-            ) : (
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip={{ children: 'Login' }}>
-                  <Link href="/login">
-                    <LogIn />
-                    <span>Login</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )}
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === '/account'}
+                tooltip={{ children: 'Account' }}
+              >
+                <Link href="/account">
+                  <Avatar className="size-6">
+                    <AvatarImage
+                      src={(profile as UserProfile & { avatarUrl?: string }).avatarUrl ?? undefined}
+                      alt={displayName}
+                    />
+                    <AvatarFallback>
+                      <UserIcon className="size-3" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate">{displayName}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={handleLogout}
+                tooltip={{ children: 'Sign out' }}
+                className="text-destructive hover:text-destructive"
+              >
+                <LogOut aria-hidden="true" />
+                <span>Sign out</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
 
       <SidebarInset>{children}</SidebarInset>
 
-      <AiKingDock />
-
+      <Suspense fallback={null}>
+        <AiKingDock />
+      </Suspense>
       <Suspense fallback={null}>
         <QuantumAvatarDock />
       </Suspense>
@@ -203,6 +188,7 @@ function AppShell({
   );
 }
 
+// ─── Public exports ───────────────────────────────────────────────────────────
 export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <Suspense fallback={<RootPageLoader />}>
@@ -211,14 +197,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const RootPageLoader = () => (
-  <main
-    className="flex min-h-screen flex-col items-center justify-center p-4 bg-background gap-4"
-    aria-live="polite"
-    aria-label="Loading application"
-  >
-    <Logo />
-    <Loader2 className="size-12 animate-spin text-primary" />
-    <p className="text-muted-foreground text-sm">Initializing Your Kingdom…</p>
-  </main>
-);
+export function RootPageLoader() {
+  return (
+    <main
+      className="flex min-h-screen flex-col items-center justify-center gap-4 p-4 bg-background"
+      aria-live="polite"
+      aria-busy="true"
+      aria-label="Loading application"
+    >
+      <Logo />
+      <Loader2 className="size-12 animate-spin text-primary" />
+      <p className="text-sm text-muted-foreground">Initializing Your Kingdom…</p>
+    </main>
+  );
+}
+
+// Back-compat re-export
+export { LogIn };

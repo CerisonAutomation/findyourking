@@ -1,33 +1,46 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 
-interface Location {
+interface GeoState {
   latitude: number | null;
   longitude: number | null;
   error: string | null;
+  isLoading: boolean;
 }
 
-export function useLocation() {
-  const [location, setLocation] = useState<Location>({ latitude: null, longitude: null, error: null });
+const INITIAL: GeoState = { latitude: null, longitude: null, error: null, isLoading: false };
+
+/**
+ * Requests browser geolocation once on mount.
+ * Returns null coords if permission denied or unavailable.
+ */
+export function useLocation(): GeoState {
+  const [state, setState] = useState<GeoState>(INITIAL);
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setLocation(l => ({ ...l, error: 'Geolocation is not supported by your browser.' }));
+      setState((s) => ({ ...s, error: 'Geolocation not supported' }));
       return;
     }
 
-    const onSuccess = (position: GeolocationPosition) => {
-      setLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude, error: null });
-    };
+    setState((s) => ({ ...s, isLoading: true }));
 
-    const onError = (error: GeolocationPositionError) => {
-      setLocation(l => ({ ...l, error: error.message }));
-    };
+    const id = navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setState({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          error: null,
+          isLoading: false,
+        });
+      },
+      (err) => {
+        setState({ latitude: null, longitude: null, error: err.message, isLoading: false });
+      },
+      { timeout: 8_000, maximumAge: 60_000 },
+    );
 
-    navigator.geolocation.getCurrentPosition(onSuccess, onError);
-
+    return () => navigator.geolocation.clearWatch(id);
   }, []);
 
-  return location;
+  return state;
 }

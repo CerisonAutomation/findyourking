@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
-import { ThemeProvider } from 'next-themes';
-import { Toaster } from 'sonner';
-import { QueryProvider } from '@/providers/query-provider';
+import { Providers } from '@/components/providers';
 import './globals.css';
 
 const inter = Inter({
@@ -28,6 +26,8 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     siteName: 'Find Your King',
+    title: 'Find Your King',
+    description: 'Premium LGBTQ+ connections.',
   },
   twitter: {
     card: 'summary_large_image',
@@ -49,25 +49,11 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
-      <body>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <QueryProvider>
-            {children}
-            <Toaster richColors position="top-right" />
-          </QueryProvider>
-        </ThemeProvider>
+      <body className="min-h-screen bg-background font-sans antialiased">
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
