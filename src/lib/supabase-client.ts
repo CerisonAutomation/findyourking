@@ -1,5 +1,5 @@
 /**
- * @deprecated Import from `@/lib/supabase/client` instead.
- * This file exists only for backward-compatibility during migration.
+ * Canonical client-side Supabase barrel.
+ * Prefer importing directly from `@/lib/supabase/client`.
  */
 export { createClient, transformToCamel } from '@/lib/supabase/client';

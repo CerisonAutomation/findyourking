@@ -3,7 +3,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -24,55 +23,48 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase-client';
+import { createClient } from '@/lib/supabase/client';
 import { Loader2 } from 'lucide-react';
 
-const updatePasswordFormSchema = z
+const schema = z
   .object({
     password: z
       .string()
       .min(8, { message: 'Password must be at least 8 characters.' })
       .max(72, { message: 'Password must be fewer than 72 characters.' }),
-    confirmPassword: z
-      .string()
-      .min(8, { message: 'Password must be at least 8 characters.' }),
+    confirmPassword: z.string().min(1, { message: 'Please confirm your password.' }),
   })
-  .refine((data) => data.password === data.confirmPassword, {
+  .refine((d) => d.password === d.confirmPassword, {
     message: 'Passwords do not match.',
     path: ['confirmPassword'],
   });
 
-type UpdatePasswordFormValues = z.infer<typeof updatePasswordFormSchema>;
+type FormValues = z.infer<typeof schema>;
 
-export const UpdatePasswordCard = () => {
+export function UpdatePasswordCard() {
   const supabase = createClient();
 
-  const form = useForm<UpdatePasswordFormValues>({
-    resolver: zodResolver(updatePasswordFormSchema),
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
     defaultValues: { password: '', confirmPassword: '' },
     mode: 'onChange',
   });
 
-  const onSubmit = async (data: UpdatePasswordFormValues) => {
-    const toastId = toast.loading('Updating password...');
+  const onSubmit = async (data: FormValues) => {
+    const toastId = toast.loading('Updating password…');
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: data.password,
-      });
-
+      const { error } = await supabase.auth.updateUser({ password: data.password });
       if (error) {
-        toast.error('Failed to update password', {
-          id: toastId,
-          description: error.message,
-        });
+        toast.error('Failed to update password', { id: toastId, description: error.message });
         return;
       }
-
       toast.success('Password updated successfully!', { id: toastId });
       form.reset();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
-      toast.error('Something went wrong', { id: toastId, description: message });
+      toast.error('Something went wrong', {
+        id: toastId,
+        description: err instanceof Error ? err.message : 'An unexpected error occurred.',
+      });
     }
   };
 
@@ -84,7 +76,6 @@ export const UpdatePasswordCard = () => {
             <CardTitle>Password</CardTitle>
             <CardDescription>Enter a new password to secure your kingdom.</CardDescription>
           </CardHeader>
-
           <CardContent className="space-y-4">
             <FormField
               control={form.control}
@@ -107,7 +98,6 @@ export const UpdatePasswordCard = () => {
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="confirmPassword"
@@ -127,7 +117,6 @@ export const UpdatePasswordCard = () => {
               )}
             />
           </CardContent>
-
           <CardFooter className="border-t px-6 py-4">
             <Button
               type="submit"
@@ -143,4 +132,4 @@ export const UpdatePasswordCard = () => {
       </form>
     </Form>
   );
-};
+}

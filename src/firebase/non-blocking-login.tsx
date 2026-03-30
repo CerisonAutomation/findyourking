@@ -1,29 +1,16 @@
-'use client';
-import {
-  Auth, // Import Auth type for type hinting
-  signInAnonymously,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  // Assume getAuth and app are initialized elsewhere
-} from 'firebase/auth';
+/**
+ * @migration Firebase Auth → Supabase Auth
+ *
+ * This file previously contained non-blocking Firebase Auth helpers.
+ * The project has migrated fully to Supabase. Use the hooks and helpers below.
+ *
+ * Auth state: `useUser()` from `@/hooks/use-user`
+ * Sign in:    `supabase.auth.signInWithOtp({ email })` (magic link)
+ * Sign in:    `supabase.auth.signInWithPassword({ email, password })`
+ * Sign up:    `supabase.auth.signUp({ email, password })`
+ * Sign out:   `const { signOut } = useUser()`
+ *
+ * Client:     `createClient()` from `@/lib/supabase/client`
+ */
 
-/** Initiate anonymous sign-in (non-blocking). */
-export function initiateAnonymousSignIn(authInstance: Auth): void {
-  // CRITICAL: Call signInAnonymously directly. Do NOT use 'await signInAnonymously(...)'.
-  signInAnonymously(authInstance);
-  // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
-}
-
-/** Initiate email/password sign-up (non-blocking). */
-export function initiateEmailSignUp(authInstance: Auth, email: string, password: string): void {
-  // CRITICAL: Call createUserWithEmailAndPassword directly. Do NOT use 'await createUserWithEmailAndPassword(...)'.
-  createUserWithEmailAndPassword(authInstance, email, password);
-  // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
-}
-
-/** Initiate email/password sign-in (non-blocking). */
-export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): void {
-  // CRITICAL: Call signInWithEmailAndPassword directly. Do NOT use 'await signInWithEmailAndPassword(...)'.
-  signInWithEmailAndPassword(authInstance, email, password);
-  // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
-}
+export {};

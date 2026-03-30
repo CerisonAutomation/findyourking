@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase-client';
+import { createClient } from '@/lib/supabase/client';
 import { Textarea } from '@/components/ui/textarea';
 import { allInterests } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
@@ -70,10 +70,10 @@ export function AccountForm({ user, profile }: AccountFormProps) {
   });
 
   async function onSubmit(data: AccountFormValues) {
-    toast.loading('Updating profile...');
+    const toastId = toast.loading('Updating profile...');
     const { error } = await supabase.from('profiles').upsert(
       {
-        user_id: user.id,             // ✅ snake_case write key
+        user_id: user.id,
         updated_at: new Date().toISOString(),
         id: data.id,
         bio: data.bio,
@@ -81,13 +81,13 @@ export function AccountForm({ user, profile }: AccountFormProps) {
         location: data.location,
         interests: data.interests,
       },
-      { onConflict: 'user_id' }       // ✅ snake_case conflict target
+      { onConflict: 'user_id' },
     );
 
     if (error) {
-      toast.error('Error updating profile', { description: error.message });
+      toast.error('Error updating profile', { id: toastId, description: error.message });
     } else {
-      toast.success('Profile updated successfully!');
+      toast.success('Profile updated successfully!', { id: toastId });
       router.refresh();
     }
   }
@@ -102,7 +102,7 @@ export function AccountForm({ user, profile }: AccountFormProps) {
             <FormItem>
               <FormLabel>Display Name</FormLabel>
               <FormControl>
-                <Input placeholder="Your display name" {...field} />
+                <Input placeholder="Your display name" autoComplete="name" {...field} />
               </FormControl>
               <FormDescription>
                 This is the name that will be displayed to other users.
@@ -121,9 +121,13 @@ export function AccountForm({ user, profile }: AccountFormProps) {
                 <Textarea
                   placeholder="Tell us a little bit about yourself"
                   className="resize-none"
+                  rows={4}
                   {...field}
                 />
               </FormControl>
+              <FormDescription>
+                {field.value?.length ?? 0}/280 characters
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -136,7 +140,14 @@ export function AccountForm({ user, profile }: AccountFormProps) {
               <FormItem>
                 <FormLabel>Height (cm)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="180" {...field} />
+                  <Input
+                    type="number"
+                    placeholder="180"
+                    min={100}
+                    max={250}
+                    autoComplete="off"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -149,7 +160,11 @@ export function AccountForm({ user, profile }: AccountFormProps) {
               <FormItem>
                 <FormLabel>Location</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., New York, NY" {...field} />
+                  <Input
+                    placeholder="e.g., New York, NY"
+                    autoComplete="address-level2"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -163,12 +178,18 @@ export function AccountForm({ user, profile }: AccountFormProps) {
             <FormItem>
               <FormLabel>Interests</FormLabel>
               <FormDescription>Select up to 5 interests.</FormDescription>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Interests">
                 {allInterests.map((interest) => (
                   <Badge
                     key={interest}
                     variant={field.value.includes(interest) ? 'default' : 'secondary'}
-                    className="cursor-pointer select-none"
+                    className="cursor-pointer select-none transition-colors"
+                    role="checkbox"
+                    aria-checked={field.value.includes(interest)}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === ' ' || e.key === 'Enter') e.currentTarget.click();
+                    }}
                     onClick={() => {
                       const current = field.value ?? [];
                       const next = current.includes(interest)
@@ -191,8 +212,10 @@ export function AccountForm({ user, profile }: AccountFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <Button type="submit" disabled={form.formState.isSubmitting || !form.formState.isDirty}>
+          {form.formState.isSubmitting && (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+          )}
           Update profile
         </Button>
       </form>
