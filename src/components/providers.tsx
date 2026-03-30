@@ -7,8 +7,8 @@ import { QueryProvider } from '@/providers/query-provider';
 import { UserProvider } from '@/hooks/use-user';
 
 /**
- * Unified root provider tree.
- * Order matters: ThemeProvider → QueryProvider → UserProvider → children.
+ * Root provider tree — order is intentional:
+ * ThemeProvider → QueryProvider → UserProvider → children
  */
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -25,9 +25,7 @@ export function Providers({ children }: { children: ReactNode }) {
             richColors
             position="top-right"
             toastOptions={{
-              classNames: {
-                toast: 'font-sans text-sm',
-              },
+              classNames: { toast: 'font-sans text-sm' },
             }}
           />
         </UserProvider>

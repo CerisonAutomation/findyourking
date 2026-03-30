@@ -2,8 +2,9 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 
 /**
- * Root page — redirect authenticated users to /discover,
- * unauthenticated users to /login.
+ * Root page — immediately redirects:
+ * - Authenticated users → /discover
+ * - Unauthenticated users → /login
  */
 export default async function RootPage() {
   const supabase = await createClient();
@@ -11,9 +12,5 @@ export default async function RootPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user) {
-    redirect('/discover');
-  } else {
-    redirect('/login');
-  }
+  redirect(user ? '/discover' : '/login');
 }

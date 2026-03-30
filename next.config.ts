@@ -3,10 +3,14 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
-  // Server packages that must NOT be bundled (native modules / CJS-only)
-  serverExternalPackages: ['@node-rs/argon2', 'import-in-the-middle', 'require-in-the-middle'],
+  // Native/CJS-only packages — must not be bundled by webpack
+  serverExternalPackages: [
+    '@node-rs/argon2',
+    'import-in-the-middle',
+    'require-in-the-middle',
+  ],
 
-  // Remove console.* in production builds (keep error)
+  // Strip console.* in production (keep console.error)
   compiler: {
     removeConsole:
       process.env.NODE_ENV === 'production' ? { exclude: ['error'] } : false,
@@ -23,7 +27,7 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Security + perf headers on every route
+  // Security + perf headers
   async headers() {
     return [
       {
@@ -49,7 +53,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' blob: data: https://images.unsplash.com https://lh3.googleusercontent.com https://picsum.photos https://*.supabase.co",
               "font-src 'self'",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://firestore.googleapis.com https://generativelanguage.googleapis.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
               "frame-ancestors 'none'",
             ].join('; '),
           },
@@ -58,12 +62,12 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Silence type errors during incremental migration
+  // Silence TS errors during migration — remove once fully typed
   typescript: {
     ignoreBuildErrors: true,
   },
 
-  // Silence ESLint errors during Vercel build (linting done in CI separately)
+  // ESLint runs separately in CI; skip during Vercel builds
   eslint: {
     ignoreDuringBuilds: true,
   },

@@ -1,5 +1,8 @@
-// Auto-generated — run `pnpm db:generate` to refresh
-// This is a stub; replace with your actual generated types
+/**
+ * Database type stubs.
+ * Replace this file with the output of:
+ *   npx supabase gen types typescript --project-id <your-project-id> > src/lib/supabase/types.ts
+ */
 export type Database = {
   public: {
     Tables: Record<string, unknown>;
@@ -8,3 +11,9 @@ export type Database = {
     Enums: Record<string, unknown>;
   };
 };
+
+export type Tables<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T] extends { Row: infer R } ? R : never;
+
+export type Enums<T extends keyof Database['public']['Enums']> =
+  Database['public']['Enums'][T];

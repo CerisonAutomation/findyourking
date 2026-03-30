@@ -13,14 +13,11 @@ import type {
   interests,
 } from '@/db/schema';
 
-// ─── Drizzle source-of-truth types ───────────────────────────────────────────
+// ─── Drizzle-inferred row types ───────────────────────────────────────────────
+
 export type User = InferSelectModel<typeof users>;
 export type UserProfile = InferSelectModel<typeof profiles> & {
-  /** Structured geo-location — object or legacy string, nullable */
-  location?: string | { latitude: number; longitude: number; city?: string } | null;
-  /** Computed from DB */
-  age?: number | null;
-  /** Computed / virtual */
+  /** Computed distance — populated by discovery queries */
   distanceMiles?: number;
 };
 export type Message = InferSelectModel<typeof messages>;
@@ -33,7 +30,8 @@ export type AdminSetting = InferSelectModel<typeof adminSettings>;
 export type Tribe = InferSelectModel<typeof tribes>;
 export type Interest = InferSelectModel<typeof interests>;
 
-// ─── Booking statuses ────────────────────────────────────────────────────────
+// ─── Domain types ─────────────────────────────────────────────────────────────
+
 export type BookingStatus =
   | 'pending'
   | 'confirmed'
@@ -41,11 +39,13 @@ export type BookingStatus =
   | 'completed'
   | 'cancelled';
 
-// ─── Role union ───────────────────────────────────────────────────────────────
-export type UserRole = 'user' | 'seeker' | 'provider' | 'admin';
+export type UserRole = 'seeker' | 'provider' | 'admin';
+
+export type SubscriptionTier = 'free' | 'premium' | 'platinum';
 
 // ─── Supabase RPC shapes (snake_case as returned by PostgreSQL) ───────────────
-export interface RpcConversationRow {
+
+export interface ConversationRow {
   conversation_id: string;
   other_user_id: string;
   other_user_name: string;
@@ -64,7 +64,8 @@ export interface ConversationMessage {
   isRead: boolean;
 }
 
-// ─── Pagination ───────────────────────────────────────────────────────────────
+// ─── Shared paginated response wrapper ───────────────────────────────────────
+
 export interface PaginatedResult<T> {
   data: T[];
   hasMore: boolean;
@@ -73,6 +74,7 @@ export interface PaginatedResult<T> {
 }
 
 // ─── Discover filters ─────────────────────────────────────────────────────────
+
 export interface DiscoverFilters {
   ageRange: [number, number];
   distanceMiles: number;
