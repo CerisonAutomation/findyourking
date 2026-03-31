@@ -14,7 +14,6 @@ import {
   BrainCircuit,
   ShieldCheck,
   PartyPopper,
-  Bell,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/logo';
@@ -30,10 +29,9 @@ import {
 const NAV_ITEMS = [
   { href: '/discover',  label: 'Discover',  icon: Compass },
   { href: '/meet-now',  label: 'Meet Now',  icon: Zap },
-  { href: '/events',    label: 'Events',    icon: PartyPopper },
   { href: '/messages',  label: 'Messages',  icon: MessageCircle, badge: true },
+  { href: '/events',    label: 'Events',    icon: CalendarDays },
   { href: '/favorites', label: 'Saved',     icon: Heart },
-  { href: '/bookings',  label: 'Bookings',  icon: CalendarDays },
   { href: '/ai-king',   label: 'Oracle',    icon: BrainCircuit },
 ];
 
@@ -147,10 +145,9 @@ function MobileNavItem({ href, label, icon: Icon, badgeCount = 0 }: {
 }
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const { user } = useUser();
+  const { user }    = useUser();
   const unreadCount = useUnreadCount(user?.id);
-
-  const isAdmin = false; // TODO: derive from user claims/role
+  const isAdmin     = false;
 
   return (
     <div className="flex h-svh overflow-hidden bg-background">
