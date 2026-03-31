@@ -1,138 +1,101 @@
 'use client';
 
 import { useUser } from '@/hooks/use-user';
-import { createClient, transformToCamel } from '@/lib/supabase/client';
-import { ProfileCard } from '@/components/profile-card';
-import { Heart, Loader2 } from 'lucide-react';
+import { useFavorites, useToggleFavorite } from '@/hooks/use-favorites';
+import { AppLayout } from '@/components/app-layout';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Heart, MessageCircle, Loader2, HeartOff } from 'lucide-react';
 import Link from 'next/link';
-import type { UserProfile } from '@/lib/types';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { createClient } from '@/lib/supabase/client';
 
-async function fetchFavoriteProfiles(userId: string): Promise<UserProfile[]> {
+async function fetchFavoriteProfiles(userIds: string[]) {
+  if (!userIds.length) return [];
   const supabase = createClient();
-
-  const { data: favRows, error: favError } = await supabase
-    .from('favorites')
-    .select('favorited_user_id')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-
-  if (favError) throw new Error(favError.message);
-  if (!favRows || favRows.length === 0) return [];
-
-  const ids = favRows.map((r) => r.favorited_user_id);
-
-  const { data: profiles, error: profileError } = await supabase
+  const { data } = await supabase
     .from('profiles')
-    .select('*')
-    .in('user_id', ids);
-
-  if (profileError) throw new Error(profileError.message);
-
-  return (profiles ?? []).map((row) => transformToCamel<UserProfile>(row));
-}
-
-function FavoritesSkeleton() {
-  return (
-    <div
-      className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6"
-      aria-hidden="true"
-    >
-      {Array.from({ length: 10 }).map((_, i) => (
-        <div key={i} className="aspect-[3/4] rounded-xl bg-muted animate-pulse" />
-      ))}
-    </div>
-  );
+    .select('user_id, display_name, avatar_url, role, is_verified, location')
+    .in('user_id', userIds);
+  return data ?? [];
 }
 
 export default function FavoritesPage() {
-  const { user } = useUser();
-  const queryClient = useQueryClient();
+  const { user }                            = useUser();
+  const { data: favorites = [], isLoading } = useFavorites(user?.id);
+  const toggleFav                           = useToggleFavorite(user?.id);
 
-  const {
-    data: favorites = [],
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ['favorites', user?.id],
-    queryFn: () => fetchFavoriteProfiles(user!.id),
-    enabled: !!user,
+  const favoriteIds = favorites.map((f) => (f as Record<string, string>).favorited_user_id);
+
+  const { data: profiles = [], isLoading: isLoadingProfiles } = useQuery({
+    queryKey: ['favoriteProfiles', favoriteIds],
+    queryFn:  () => fetchFavoriteProfiles(favoriteIds),
+    enabled:  favoriteIds.length > 0,
+    staleTime: 2 * 60_000,
   });
 
-  const handleRemoveFavorite = async (favoritedUserId: string) => {
-    if (!user) return;
-    const supabase = createClient();
-
-    queryClient.setQueryData<UserProfile[]>(
-      ['favorites', user.id],
-      (old) => (old ?? []).filter((p) => p.userId !== favoritedUserId)
-    );
-
-    const { error: removeError } = await supabase
-      .from('favorites')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('favorited_user_id', favoritedUserId);
-
-    if (removeError) {
-      await queryClient.invalidateQueries({ queryKey: ['favorites', user.id] });
-      toast.error('Could not remove favorite', { description: removeError.message });
-    } else {
-      toast.success('Removed from favorites');
-    }
-  };
+  const loading = isLoading || isLoadingProfiles;
 
   return (
-    <div className="p-4 md:p-6 min-h-full flex flex-col gap-6">
-      <header>
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">My Favorites</h1>
-          {favorites.length > 0 && (
-            <span className="text-sm text-muted-foreground font-medium">
-              {favorites.length} saved
-            </span>
-          )}
-        </div>
-        <p className="text-muted-foreground mt-1 text-sm">Kings you&apos;ve saved for later.</p>
-      </header>
+    <AppLayout>
+      <div className="flex flex-col h-full">
+        <header className="sticky top-0 z-10 bg-background/80 backdrop-blur border-b px-4 py-3">
+          <h1 className="text-lg font-bold">Favorites</h1>
+          <p className="text-xs text-muted-foreground">{favorites.length} saved kings</p>
+        </header>
 
-      {isLoading ? (
-        <FavoritesSkeleton />
-      ) : error ? (
-        <div className="flex-1 flex items-center justify-center text-destructive text-sm">
-          Failed to load favorites. Please try again.
-        </div>
-      ) : favorites.length === 0 ? (
-        <div
-          className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground gap-4 border-2 border-dashed border-border/50 rounded-xl p-10"
-          role="status"
-        >
-          <Heart className="size-16 opacity-40" />
-          <h2 className="text-xl font-semibold">No Favorites Yet</h2>
-          <p className="max-w-xs text-sm">
-            Tap the heart on any profile to save them here.
-          </p>
-          <Link href="/discover">
-            <Button>Discover Kings</Button>
-          </Link>
-        </div>
-      ) : (
-        <section
-          aria-label="Favorite profiles"
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6"
-        >
-          {favorites.map((profile) => (
-            <ProfileCard
-              key={profile.userId}
-              user={profile}
-              isFavorite
-              onToggleFavorite={() => handleRemoveFavorite(profile.userId)}
-            />
-          ))}
-        </section>
-      )}
-    </div>
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : profiles.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-muted-foreground text-center">
+            <HeartOff className="size-12 opacity-30" />
+            <p className="font-medium">No favorites yet</p>
+            <p className="text-sm">Heart a profile on Discover to save them here.</p>
+            <Link href="/discover">
+              <Button variant="outline" size="sm">Discover Kings</Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="divide-y">
+            {profiles.map((profile: Record<string, string>) => (
+              <div key={profile.user_id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors">
+                <Link href={`/profile/${profile.user_id}`}>
+                  <Avatar className="size-12">
+                    <AvatarImage src={profile.avatar_url ?? undefined} alt={profile.display_name} />
+                    <AvatarFallback>{(profile.display_name ?? 'U').charAt(0)}</AvatarFallback>
+                  </Avatar>
+                </Link>
+                <div className="flex-1 min-w-0">
+                  <Link href={`/profile/${profile.user_id}`}>
+                    <p className="font-semibold text-sm truncate">{profile.display_name}</p>
+                  </Link>
+                  <p className="text-xs text-muted-foreground capitalize">{profile.role}</p>
+                  {profile.location && (
+                    <p className="text-xs text-muted-foreground">{profile.location}</p>
+                  )}
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Link href={`/messages/${profile.user_id}`}>
+                    <Button size="icon" variant="outline" className="size-9" aria-label="Message">
+                      <MessageCircle className="size-4" />
+                    </Button>
+                  </Link>
+                  <Button
+                    size="icon" variant="outline" className="size-9"
+                    onClick={() => toggleFav.mutate(profile.user_id)}
+                    disabled={toggleFav.isPending}
+                    aria-label="Unfavorite"
+                  >
+                    <Heart className="size-4 fill-current text-primary" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </AppLayout>
   );
 }

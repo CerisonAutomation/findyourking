@@ -1,194 +1,205 @@
 'use client';
 
-import React, { useState, useRef, ChangeEvent } from 'react';
-import { Sparkles, Upload, Wand2, Loader2, ThumbsUp, ThumbsDown, Award } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createClient } from '@/lib/supabase/client';
+import { uploadAlbumPhoto, deleteStorageFile, MAX_IMAGE_BYTES } from '@/lib/storage';
+import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { suggestBestPhotos, SuggestBestPhotosOutput } from '@/ai/flows/ai-photo-curation';
-import Image from 'next/image';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
+import { Loader2, Plus, Trash2, ImageOff, GripVertical } from 'lucide-react';
+import { AppLayout } from '@/components/app-layout';
+
+export const metadata = {
+  title: 'Photo Album',
+  description: 'Manage your profile photos.',
+};
+
+interface AlbumPhoto {
+  id:         string;
+  userId:     string;
+  url:        string;
+  sortOrder:  number;
+  createdAt:  string;
+}
+
+async function fetchAlbum(userId: string): Promise<AlbumPhoto[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('album_photos')
+    .select('*')
+    .eq('user_id', userId)
+    .order('sort_order', { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({
+    id:        r.id,
+    userId:    r.user_id,
+    url:       r.url,
+    sortOrder: r.sort_order,
+    createdAt: r.created_at,
+  }));
+}
 
 export default function PhotoCurationPage() {
-  const [photos, setPhotos] = useState<string[]>([]);
-  const [analysisResult, setAnalysisResult] = useState<SuggestBestPhotosOutput | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user }       = useUser();
+  const qc             = useQueryClient();
+  const fileRef        = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [overIdx, setOverIdx]   = useState<number | null>(null);
 
-  const handlePhotoUpload = (event: ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
-      const newPhotos: string[] = [];
-      const promises = Array.from(files).map(file => {
-        return new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = e => {
-            if (e.target?.result) {
-              resolve(e.target.result as string);
-            } else {
-              reject(new Error('Failed to read file.'));
-            }
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      });
+  const { data: photos = [], isLoading } = useQuery({
+    queryKey: ['album', user?.id],
+    queryFn:  () => fetchAlbum(user!.id),
+    enabled:  !!user,
+  });
 
-      Promise.all(promises)
-        .then(results => {
-          setPhotos(prev => [...prev, ...results].slice(0, 5)); // Limit to 5 photos
-        })
-        .catch(error => {
-          console.error('Error reading files:', error);
-          toast.error('Error', {
-            description: 'Failed to upload photos.',
-          });
-        });
-    }
-  };
+  // Upload
+  const uploadMutation = useMutation({
+    mutationFn: async (files: FileList) => {
+      if (!user) throw new Error('Not authenticated');
+      const supabase = createClient();
+      for (const file of Array.from(files)) {
+        if (file.size > MAX_IMAGE_BYTES) { toast.error(`${file.name} exceeds 10 MB`); continue; }
+        const url       = await uploadAlbumPhoto(file, user.id);
+        const sortOrder = photos.length + 1;
+        const { error } = await supabase
+          .from('album_photos')
+          .insert({ user_id: user.id, url, sort_order: sortOrder });
+        if (error) toast.error(error.message);
+      }
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['album', user?.id] }),
+    onError:   (e: Error) => toast.error(e.message),
+  });
 
-  const handleAnalyzeClick = async () => {
-    if (photos.length === 0) {
-      toast.error('No Photos', {
-        description: 'Please upload at least one photo to analyze.',
-      });
-      return;
-    }
+  // Delete
+  const deleteMutation = useMutation({
+    mutationFn: async (photo: AlbumPhoto) => {
+      const supabase = createClient();
+      // Extract storage path from URL
+      const pathParts = photo.url.split('/albums/');
+      if (pathParts[1]) await deleteStorageFile('albums', pathParts[1]);
+      const { error } = await supabase.from('album_photos').delete().eq('id', photo.id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['album', user?.id] }),
+    onError:   (e: Error) => toast.error(e.message),
+  });
 
-    setIsLoading(true);
-    setAnalysisResult(null);
+  // Reorder (drag-and-drop)
+  const reorderMutation = useMutation({
+    mutationFn: async (ordered: AlbumPhoto[]) => {
+      const supabase = createClient();
+      await Promise.all(
+        ordered.map((p, i) =>
+          supabase.from('album_photos').update({ sort_order: i + 1 }).eq('id', p.id),
+        ),
+      );
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['album', user?.id] }),
+  });
 
-    try {
-      const result = await suggestBestPhotos({ photoDataUris: photos });
-      setAnalysisResult(result);
-    } catch (error) {
-      console.error('Error analyzing photos:', error);
-      toast.error('AI Analysis Failed', {
-        description: 'The AI King could not process your request. Please try again.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 8) return 'bg-green-500';
-    if (score >= 5) return 'bg-yellow-500';
-    return 'bg-red-500';
+  const handleDrop = (dropIdx: number) => {
+    if (dragging === null) return;
+    const dragIdx = photos.findIndex((p) => p.id === dragging);
+    if (dragIdx === dropIdx) return;
+    const reordered = [...photos];
+    const [moved]   = reordered.splice(dragIdx, 1);
+    reordered.splice(dropIdx, 0, moved);
+    reorderMutation.mutate(reordered);
+    setDragging(null);
+    setOverIdx(null);
   };
 
   return (
-    <div className="p-4 md:p-6 h-full flex flex-col">
-      <header className="flex items-center gap-2 mb-6">
-        <Wand2 className="text-primary" />
-        <h1 className="text-2xl font-bold tracking-tight">Photo Curation Oracle</h1>
-      </header>
-
-      <div className="grid md:grid-cols-2 gap-8 flex-1">
-        {/* Left Side: Uploader */}
-        <div className="flex flex-col gap-6">
-          <Card
-            className="flex-1 border-2 border-dashed border-border hover:border-primary transition-colors cursor-pointer"
-            onClick={() => fileInputRef.current?.click()}
+    <AppLayout>
+      <div className="flex flex-col h-full">
+        <header className="sticky top-0 z-10 bg-background/80 backdrop-blur border-b px-4 py-3 flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-bold">My Photos</h1>
+            <p className="text-xs text-muted-foreground">{photos.length} / 12 photos · drag to reorder</p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploadMutation.isPending || photos.length >= 12}
+            aria-label="Upload photos"
           >
-            <CardContent className="flex flex-col items-center justify-center h-full text-center p-6">
-              <Upload className="size-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold">Upload Your Photos</h3>
-              <p className="text-sm text-muted-foreground">
-                Drag & drop or click to select up to 5 images.
-              </p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={handlePhotoUpload}
-              />
-            </CardContent>
-          </Card>
-          
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
-            {photos.map((photo, index) => (
-              <div key={index} className="relative aspect-square rounded-lg overflow-hidden border">
-                <Image src={photo} alt={`Uploaded photo ${index + 1}`} fill className="object-cover" />
+            {uploadMutation.isPending
+              ? <Loader2 className="size-4 animate-spin" />
+              : <><Plus className="size-4 mr-1" /> Add</>}
+          </Button>
+        </header>
+
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files?.length) uploadMutation.mutate(e.target.files);
+            e.target.value = '';
+          }}
+        />
+
+        {isLoading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : photos.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-muted-foreground text-center">
+            <ImageOff className="size-12 opacity-30" />
+            <p className="font-medium">No photos yet</p>
+            <p className="text-sm">Add up to 12 photos to your profile album.</p>
+          </div>
+        ) : (
+          <div className="p-4 grid grid-cols-3 gap-2">
+            {photos.map((photo, idx) => (
+              <div
+                key={photo.id}
+                draggable
+                onDragStart={() => setDragging(photo.id)}
+                onDragOver={(e) => { e.preventDefault(); setOverIdx(idx); }}
+                onDrop={() => handleDrop(idx)}
+                onDragEnd={() => { setDragging(null); setOverIdx(null); }}
+                className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all ${
+                  overIdx === idx && dragging !== photo.id
+                    ? 'border-primary scale-105'
+                    : 'border-transparent'
+                }`}
+                aria-label={`Photo ${idx + 1}`}
+              >
+                <img
+                  src={photo.url}
+                  alt={`Album photo ${idx + 1}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                {/* Sort badge */}
+                <div className="absolute top-1.5 left-1.5 size-5 rounded-full bg-black/60 text-white text-[10px] font-bold flex items-center justify-center">
+                  {idx + 1}
+                </div>
+                {/* Drag handle */}
+                <div className="absolute top-1.5 right-7 opacity-0 group-hover:opacity-100 bg-black/50 rounded p-0.5 cursor-grab">
+                  <GripVertical className="size-3 text-white" />
+                </div>
+                {/* Delete */}
+                <button
+                  onClick={() => deleteMutation.mutate(photo)}
+                  disabled={deleteMutation.isPending}
+                  className="absolute top-1.5 right-1.5 size-6 rounded-full bg-destructive/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Delete photo"
+                >
+                  {deleteMutation.isPending
+                    ? <Loader2 className="size-3 animate-spin" />
+                    : <Trash2 className="size-3" />}
+                </button>
               </div>
             ))}
           </div>
-
-          <Button onClick={handleAnalyzeClick} disabled={isLoading || photos.length === 0} size="lg">
-            {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="mr-2 h-4 w-4" />
-            )}
-            Consult the Oracle
-          </Button>
-        </div>
-
-        {/* Right Side: Results */}
-        <div className="flex flex-col">
-          <Card className="flex-1 bg-card/50 overflow-hidden">
-            <CardContent className="p-6 h-full overflow-y-auto">
-              {!analysisResult && !isLoading && (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  <Wand2 className="size-16 text-muted-foreground" />
-                  <h2 className="mt-6 text-xl font-semibold">Awaiting Your Offering</h2>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Upload your photos and consult the AI King for divine guidance on your profile picture.
-                  </p>
-                </div>
-              )}
-              {isLoading && (
-                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <Loader2 className="size-16 text-primary animate-spin" />
-                  <h2 className="mt-6 text-xl font-semibold">The Oracle is Scrying...</h2>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Analyzing every pixel to forge your new first impression.
-                  </p>
-                </div>
-              )}
-              {analysisResult && (
-                <div className="space-y-8">
-                  <div>
-                    <h2 className="text-xl font-bold mb-4 text-primary flex items-center gap-2"><Award /> The Oracle's #1 Pick</h2>
-                    <div className="relative aspect-[3/4] rounded-xl overflow-hidden border-2 border-primary shadow-lg">
-                      <Image src={analysisResult.bestPhotoDataUri} alt="Best Photo" fill className="object-cover" />
-                    </div>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold mb-4">Overall Summary</h2>
-                    <p className="text-muted-foreground bg-muted p-4 rounded-lg">{analysisResult.overallSummary}</p>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold mb-4">Detailed Analysis</h2>
-                    <div className="space-y-6">
-                      {analysisResult.analysis.map((item, index) => (
-                        <div key={index} className="grid md:grid-cols-[100px_1fr] gap-4 items-start">
-                          <Image src={item.photoDataUri} alt={`Analyzed photo ${index + 1}`} width={100} height={133} className="rounded-md object-cover aspect-[3/4]" />
-                          <div className="space-y-2">
-                             <div className="flex items-center gap-3">
-                               <p className="font-bold">Attraction Score: {item.score}/10</p>
-                               <Progress value={item.score * 10} className="w-24 h-2" indicatorClassName={getScoreColor(item.score)} />
-                             </div>
-                            <p className="text-sm text-muted-foreground">{item.feedback}</p>
-                             <Badge variant={item.isRecommended ? "default" : "destructive"}>
-                              {item.isRecommended ? <ThumbsUp className="size-3 mr-1.5" /> : <ThumbsDown className="size-3 mr-1.5" />}
-                              {item.isRecommended ? 'Recommended' : 'Not Recommended'}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        )}
       </div>
-    </div>
+    </AppLayout>
   );
 }

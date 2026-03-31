@@ -1,317 +1,167 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useState } from 'react';
 import { useUser } from '@/hooks/use-user';
-import { createClient, transformToCamel } from '@/lib/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useBookings, useUpdateBookingStatus } from '@/hooks/use-bookings';
+import { AppLayout } from '@/components/app-layout';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Clock, MapPin, DollarSign, CheckCircle, XCircle, CalendarClock, AlertCircle } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { format } from 'date-fns';
+import { Loader2, CalendarCheck, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { Booking } from '@/lib/types';
+import { toast } from 'sonner';
 
-type BookingStatus = 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
-
-type BookingWithUsers = Booking & {
-  seeker: { id: string; user_id: string } | null;
-  provider: { id: string; user_id: string; hourly_rate?: number } | null;
+const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; icon: React.ReactNode }> = {
+  pending:     { label: 'Pending',    variant: 'secondary',   icon: <Clock className="size-3" /> },
+  confirmed:   { label: 'Confirmed',  variant: 'default',     icon: <CheckCircle2 className="size-3" /> },
+  in_progress: { label: 'Ongoing',    variant: 'default',     icon: <CalendarCheck className="size-3" /> },
+  completed:   { label: 'Completed',  variant: 'outline',     icon: <CheckCircle2 className="size-3" /> },
+  cancelled:   { label: 'Cancelled',  variant: 'destructive', icon: <XCircle className="size-3" /> },
 };
 
-const STATUS_CLASSES: Record<BookingStatus, string> = {
-  pending: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30',
-  confirmed: 'bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30',
-  in_progress: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30',
-  completed: 'bg-muted text-muted-foreground border-border',
-  cancelled: 'bg-destructive/10 text-destructive border-destructive/30',
-};
-
-async function fetchBookings(userId: string): Promise<{
-  bookings: BookingWithUsers[];
-  userRole: 'seeker' | 'provider';
-}> {
-  const supabase = createClient();
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('user_id', userId)
-    .single();
-
-  const userRole: 'seeker' | 'provider' =
-    profile?.role === 'provider' ? 'provider' : 'seeker';
-
-  const { data, error } = await supabase
-    .from('bookings')
-    .select(
-      `
-      *,
-      seeker:profiles!seeker_id ( id, user_id ),
-      provider:profiles!provider_id ( id, user_id, hourly_rate )
-    `
-    )
-    .eq(userRole === 'seeker' ? 'seeker_id' : 'provider_id', userId)
-    .order('date', { ascending: false });
-
-  if (error) throw new Error(error.message);
-
-  return {
-    bookings: (data ?? []) as BookingWithUsers[],
-    userRole,
-  };
-}
-
-function BookingCardSkeleton() {
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-5 w-20 rounded-full" />
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        <Skeleton className="h-4 w-48" />
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-4 w-36" />
-      </CardContent>
-    </Card>
-  );
-}
-
-function EmptyTabState({ label }: { label: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground gap-2">
-      <CalendarClock className="size-12 opacity-40" />
-      <p className="font-medium">{label}</p>
-    </div>
-  );
-}
-
-function BookingCard({
-  booking,
-  userRole,
-  onStatusChange,
-}: {
-  booking: BookingWithUsers;
-  userRole: 'seeker' | 'provider';
-  onStatusChange: (id: string, status: BookingStatus) => void;
-}) {
-  const otherUser = userRole === 'seeker' ? booking.provider : booking.seeker;
-  const status = (booking.status ?? 'pending') as BookingStatus;
-  const dateStr = typeof booking.date === 'string' ? booking.date : new Date(booking.date).toISOString();
+function BookingCard({ booking, userId }: { booking: Booking & { seeker?: Record<string, string>; provider?: Record<string, string> }; userId: string }) {
+  const updateStatus = useUpdateBookingStatus();
+  const isProvider   = booking.providerId === userId;
+  const other        = isProvider ? booking.seeker : booking.provider;
+  const cfg          = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG.pending;
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <CardTitle className="text-base font-semibold">
-            {userRole === 'seeker' ? 'With' : 'From'}{' '}
-            {otherUser?.id ?? 'Unknown'}
-          </CardTitle>
-          <Badge
-            variant="outline"
-            className={STATUS_CLASSES[status] ?? STATUS_CLASSES.pending}
-          >
-            {status.replace('_', ' ').toUpperCase()}
-          </Badge>
+    <article className="rounded-2xl border bg-card p-4 flex flex-col gap-3">
+      <div className="flex items-center gap-3">
+        <Avatar className="size-10">
+          <AvatarImage src={other?.avatar_url ?? undefined} />
+          <AvatarFallback>{(other?.display_name ?? 'U').charAt(0)}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm truncate">{other?.display_name ?? 'Unknown'}</p>
+          <p className="text-xs text-muted-foreground">
+            {isProvider ? 'You are the provider' : 'You requested'}
+          </p>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-2 text-sm">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Calendar className="size-4 shrink-0" />
-          <span>
-            {new Date(dateStr).toLocaleDateString('en-US', {
-              weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
-            })}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Clock className="size-4 shrink-0" />
-          <span>
-            {new Date(dateStr).toLocaleTimeString('en-US', {
-              hour: 'numeric', minute: '2-digit', hour12: true,
-            })}
-            {booking.duration ? ` · ${booking.duration} min` : ''}
-          </span>
-        </div>
-        {booking.location && (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <MapPin className="size-4 shrink-0" />
-            <span>{booking.location}</span>
-          </div>
-        )}
-        {booking.provider?.hourly_rate && (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <DollarSign className="size-4 shrink-0" />
-            <span>${booking.provider.hourly_rate}/hour</span>
-          </div>
-        )}
-        {booking.notes && (
-          <p className="text-muted-foreground mt-2 border-t pt-2">{booking.notes}</p>
-        )}
+        <Badge variant={cfg.variant} className="gap-1 shrink-0">
+          {cfg.icon}{cfg.label}
+        </Badge>
+      </div>
 
-        {status === 'pending' && userRole === 'provider' && (
-          <div className="flex gap-2 pt-2">
-            <Button size="sm" onClick={() => onStatusChange(booking.id, 'confirmed')} aria-label="Accept booking">
-              <CheckCircle className="mr-2 size-4" />
+      <div className="text-sm text-muted-foreground space-y-0.5">
+        {booking.date && (
+          <p>📅 {format(new Date(booking.date as string), 'EEE, MMM d · h:mm a')}</p>
+        )}
+        {booking.duration && <p>⏱ {booking.duration}h session</p>}
+        {booking.totalPrice && <p>💰 ${Number(booking.totalPrice).toFixed(2)}</p>}
+        {booking.notes && <p className="italic">📝 {booking.notes}</p>}
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-2">
+        {isProvider && booking.status === 'pending' && (
+          <>
+            <Button
+              size="sm" className="flex-1"
+              onClick={() => updateStatus.mutate(
+                { bookingId: booking.id, status: 'confirmed' },
+                { onSuccess: () => toast.success('Booking confirmed') },
+              )}
+              disabled={updateStatus.isPending}
+            >
               Accept
             </Button>
-            <Button size="sm" variant="outline" onClick={() => onStatusChange(booking.id, 'cancelled')} aria-label="Decline booking">
-              <XCircle className="mr-2 size-4" />
+            <Button
+              size="sm" variant="outline" className="flex-1"
+              onClick={() => updateStatus.mutate(
+                { bookingId: booking.id, status: 'cancelled' },
+                { onSuccess: () => toast.success('Booking declined') },
+              )}
+              disabled={updateStatus.isPending}
+            >
               Decline
             </Button>
-          </div>
+          </>
         )}
-
-        {status === 'pending' && userRole === 'seeker' && (
-          <div className="flex gap-2 pt-2">
-            <Button size="sm" variant="outline" onClick={() => onStatusChange(booking.id, 'cancelled')} aria-label="Cancel booking request">
-              <XCircle className="mr-2 size-4" />
-              Cancel Request
-            </Button>
-          </div>
+        {!isProvider && booking.status === 'confirmed' && (
+          <Button
+            size="sm" variant="destructive" className="flex-1"
+            onClick={() => updateStatus.mutate(
+              { bookingId: booking.id, status: 'cancelled' },
+              { onSuccess: () => toast.success('Booking cancelled') },
+            )}
+            disabled={updateStatus.isPending}
+          >
+            Cancel
+          </Button>
         )}
-
-        {status === 'confirmed' && (
-          <div className="flex gap-2 pt-2">
-            <Button size="sm" variant="outline" disabled aria-label="Reschedule (coming soon)">
-              <CalendarClock className="mr-2 size-4" />
-              Reschedule
-            </Button>
-          </div>
+        {isProvider && booking.status === 'confirmed' && (
+          <Button
+            size="sm" className="flex-1"
+            onClick={() => updateStatus.mutate(
+              { bookingId: booking.id, status: 'completed' },
+              { onSuccess: () => toast.success('Marked as complete') },
+            )}
+            disabled={updateStatus.isPending}
+          >
+            Mark Complete
+          </Button>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </article>
   );
 }
 
 export default function BookingsPage() {
-  const { user } = useUser();
-  const queryClient = useQueryClient();
+  const { user }                  = useUser();
+  const { data: bookings = [], isLoading } = useBookings(user?.id);
+  const [tab, setTab]             = useState('upcoming');
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['bookings', user?.id],
-    queryFn: () => fetchBookings(user!.id),
-    enabled: !!user,
-  });
-
-  const { bookings = [], userRole = 'seeker' } = data ?? {};
-
-  const statusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: BookingStatus }) => {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from('bookings')
-        .update({ status })
-        .eq('id', id);
-      if (error) throw new Error(error.message);
-    },
-    onMutate: async ({ id, status }) => {
-      await queryClient.cancelQueries({ queryKey: ['bookings', user?.id] });
-      const previous = queryClient.getQueryData(['bookings', user?.id]);
-      queryClient.setQueryData<{ bookings: BookingWithUsers[]; userRole: string }>(
-        ['bookings', user?.id],
-        (old) =>
-          old
-            ? { ...old, bookings: old.bookings.map((b) => b.id === id ? { ...b, status } : b) }
-            : old
-      );
-      return { previous };
-    },
-    onError: (_err, _vars, ctx) => {
-      queryClient.setQueryData(['bookings', user?.id], ctx?.previous);
-      toast.error('Failed to update booking status');
-    },
-    onSuccess: (_data, { status }) => {
-      toast.success(
-        status === 'confirmed' ? 'Booking accepted!'
-        : status === 'cancelled' ? 'Booking cancelled.'
-        : 'Booking updated.'
-      );
-    },
-  });
-
-  const handleStatusChange = useCallback(
-    (id: string, status: BookingStatus) => statusMutation.mutate({ id, status }),
-    [statusMutation]
-  );
-
-  const filter = useCallback(
-    (statuses: BookingStatus[]) =>
-      bookings.filter((b) => statuses.includes((b.status ?? 'pending') as BookingStatus)),
-    [bookings]
-  );
-
-  const upcoming = filter(['confirmed', 'in_progress']);
-  const pending = filter(['pending']);
-  const completed = filter(['completed']);
-  const cancelled = filter(['cancelled']);
+  const upcoming  = bookings.filter((b) => ['pending', 'confirmed', 'in_progress'].includes(b.status));
+  const past      = bookings.filter((b) => ['completed', 'cancelled'].includes(b.status));
+  const displayed = tab === 'upcoming' ? upcoming : past;
 
   return (
-    <div className="p-4 md:p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">My Bookings</h1>
-        <p className="text-muted-foreground mt-1 text-sm">Manage your appointments and schedules</p>
-      </div>
+    <AppLayout>
+      <div className="flex flex-col h-full">
+        <header className="sticky top-0 z-10 bg-background/80 backdrop-blur border-b px-4 py-3">
+          <h1 className="text-lg font-bold">Bookings</h1>
+        </header>
 
-      {isLoading ? (
-        <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, i) => <BookingCardSkeleton key={i} />)}
-        </div>
-      ) : error ? (
-        <div className="flex items-center gap-2 text-destructive text-sm p-4 border border-destructive/30 rounded-lg">
-          <AlertCircle className="size-4 shrink-0" />
-          Failed to load bookings. Please refresh.
-        </div>
-      ) : (
-        <Tabs defaultValue="upcoming" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="upcoming">
-              Upcoming
-              {upcoming.length > 0 && (
-                <span className="ml-1.5 inline-flex items-center justify-center size-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
-                  {upcoming.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="pending">
-              Pending
-              {pending.length > 0 && (
-                <span className="ml-1.5 inline-flex items-center justify-center size-4 rounded-full bg-yellow-500 text-white text-[10px] font-bold">
-                  {pending.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-            <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
-          </TabsList>
+        <div className="px-4 pt-4">
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList className="w-full">
+              <TabsTrigger value="upcoming" className="flex-1">
+                Upcoming {upcoming.length > 0 && `(${upcoming.length})`}
+              </TabsTrigger>
+              <TabsTrigger value="past" className="flex-1">
+                Past {past.length > 0 && `(${past.length})`}
+              </TabsTrigger>
+            </TabsList>
 
-          {([
-            { value: 'upcoming', items: upcoming, emptyLabel: 'No upcoming bookings' },
-            { value: 'pending', items: pending, emptyLabel: 'No pending bookings' },
-            { value: 'completed', items: completed, emptyLabel: 'No completed bookings yet' },
-            { value: 'cancelled', items: cancelled, emptyLabel: 'No cancelled bookings' },
-          ] as const).map(({ value, items, emptyLabel }) => (
-            <TabsContent key={value} value={value} className="space-y-4" aria-live="polite">
-              {items.length === 0 ? (
-                <EmptyTabState label={emptyLabel} />
+            <TabsContent value={tab} className="mt-4 space-y-3 pb-24">
+              {isLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : displayed.length === 0 ? (
+                <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground text-center">
+                  <CalendarCheck className="size-12 opacity-30" />
+                  <p className="font-medium">
+                    {tab === 'upcoming' ? 'No upcoming bookings' : 'No past bookings'}
+                  </p>
+                </div>
               ) : (
-                items.map((booking) => (
+                displayed.map((b) => (
                   <BookingCard
-                    key={booking.id}
-                    booking={booking}
-                    userRole={userRole as 'seeker' | 'provider'}
-                    onStatusChange={handleStatusChange}
+                    key={b.id}
+                    booking={b as Booking & { seeker?: Record<string, string>; provider?: Record<string, string> }}
+                    userId={user!.id}
                   />
                 ))
               )}
             </TabsContent>
-          ))}
-        </Tabs>
-      )}
-    </div>
+          </Tabs>
+        </div>
+      </div>
+    </AppLayout>
   );
 }
