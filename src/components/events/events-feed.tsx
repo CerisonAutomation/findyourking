@@ -7,9 +7,11 @@ import { useEvents, useRsvp } from '@/hooks/use-events';
 import { useUser } from '@/hooks/use-user';
 import { DEFAULT_EVENT_FILTERS } from '@/lib/types';
 import type { EventWithMeta } from '@/lib/types';
+import { EVENT_CATEGORY_META } from '@/lib/event-category-meta';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
+// ─── Feed ─────────────────────────────────────────────────────────────────────
 
 export function EventsFeed() {
   const { user } = useUser();
@@ -84,6 +86,8 @@ export function EventsFeed() {
   );
 }
 
+// ─── Card ─────────────────────────────────────────────────────────────────────
+
 function EventCard({
   event,
   userId,
@@ -92,13 +96,15 @@ function EventCard({
   userId: string | undefined;
 }) {
   const rsvpMutation = useRsvp(event.id);
+  const meta = EVENT_CATEGORY_META[event.category] ?? EVENT_CATEGORY_META.other;
+  const { Icon } = meta;
 
   return (
     <article
       className="group relative flex flex-col rounded-2xl border bg-card overflow-hidden transition-shadow hover:shadow-lg"
       aria-label={event.title}
     >
-      {/* Cover image */}
+      {/* Cover image or coloured category tile */}
       {event.imageUrl ? (
         <div className="aspect-video w-full overflow-hidden bg-muted">
           <img
@@ -109,17 +115,34 @@ function EventCard({
           />
         </div>
       ) : (
-        <div className="aspect-video w-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-          <Calendar className="size-8 text-primary/40" />
+        <div
+          className={cn(
+            'aspect-video w-full flex flex-col items-center justify-center gap-2',
+            meta.bgCls,
+          )}
+        >
+          <Icon className={cn('size-10', meta.iconCls)} aria-hidden="true" />
+          <span className={cn('text-xs font-semibold tracking-wide uppercase', meta.iconCls)}>
+            {meta.label}
+          </span>
         </div>
       )}
 
       <div className="flex flex-col gap-2 p-4">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold text-sm leading-tight line-clamp-2">{event.title}</h3>
-          <Badge variant="secondary" className="shrink-0 text-[10px]">
-            {event.category}
-          </Badge>
+          {/* Coloured category pill */}
+          <span
+            className={cn(
+              'shrink-0 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold',
+              meta.bgCls,
+              meta.iconCls,
+              meta.borderCls,
+            )}
+          >
+            <Icon className="size-2.5" aria-hidden="true" />
+            {meta.label}
+          </span>
         </div>
 
         <div className="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -144,7 +167,7 @@ function EventCard({
             <Button
               size="sm"
               variant={event.myRsvp === 'going' ? 'default' : 'outline'}
-              className="flex-1 text-xs h-8"
+              className="flex-1 rounded-full text-xs h-8"
               disabled={rsvpMutation.isPending}
               onClick={() => rsvpMutation.mutate({ userId, status: 'going' })}
             >
@@ -153,7 +176,7 @@ function EventCard({
             <Button
               size="sm"
               variant={event.myRsvp === 'maybe' ? 'secondary' : 'outline'}
-              className="flex-1 text-xs h-8"
+              className="flex-1 rounded-full text-xs h-8"
               disabled={rsvpMutation.isPending}
               onClick={() => rsvpMutation.mutate({ userId, status: 'maybe' })}
             >

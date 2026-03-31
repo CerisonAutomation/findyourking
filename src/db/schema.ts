@@ -29,10 +29,25 @@ export const bookingStatusEnum = pgEnum('booking_status', [
 export const notificationTypeEnum = pgEnum('notification_type', [
   'message', 'booking', 'favorite', 'match', 'system', 'event',
 ]);
+
+/**
+ * Chill-inspired event categories — mirrors the icon-grid type picker.
+ * DB migration required when adding/removing values.
+ */
 export const eventCategoryEnum = pgEnum('event_category', [
-  'party', 'dinner', 'drinks', 'outdoor', 'sports', 'cultural',
-  'travel', 'gaming', 'music', 'casual', 'other',
+  'gym',
+  'cinema',
+  'dinner',
+  'coffee',
+  'drinks',
+  'hiking',
+  'sports',
+  'gaming',
+  'party',
+  'meet',
+  'other',
 ]);
+
 export const rsvpStatusEnum = pgEnum('rsvp_status', [
   'going', 'maybe', 'declined',
 ]);
@@ -179,28 +194,31 @@ export const bookings = pgTable(
 export const events = pgTable(
   'events',
   {
-    id:           uuid('id').primaryKey().defaultRandom(),
-    hostId:       uuid('host_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-    title:        varchar('title', { length: 200 }).notNull(),
-    description:  text('description'),
-    category:     eventCategoryEnum('category').default('casual').notNull(),
-    location:     text('location'),
+    id:            uuid('id').primaryKey().defaultRandom(),
+    hostId:        uuid('host_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+    title:         varchar('title', { length: 200 }).notNull(),
+    description:   text('description'),
+    /** Chill-style category — matches the type-picker icon grid */
+    category:      eventCategoryEnum('category').default('meet').notNull(),
+    location:      text('location'),
     locationPoint: text('location_point'),
-    address:      text('address'),
-    startAt:      timestamp('start_at', { withTimezone: true }).notNull(),
-    endAt:        timestamp('end_at', { withTimezone: true }),
-    maxAttendees: integer('max_attendees'),
-    isPublic:     boolean('is_public').default(true),
-    imageUrl:     text('image_url'),
-    tags:         jsonb('tags').$type<string[]>().default([]),
-    createdAt:    timestamp('created_at', { withTimezone: true }).defaultNow(),
-    updatedAt:    timestamp('updated_at', { withTimezone: true }).defaultNow(),
+    address:       text('address'),
+    startAt:       timestamp('start_at', { withTimezone: true }).notNull(),
+    endAt:         timestamp('end_at', { withTimezone: true }),
+    maxAttendees:  integer('max_attendees'),
+    isPublic:      boolean('is_public').default(true),
+    isCancelled:   boolean('is_cancelled').default(false),
+    imageUrl:      text('image_url'),
+    tags:          jsonb('tags').$type<string[]>().default([]),
+    createdAt:     timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt:     timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (t) => ({
-    hostIdx:     index('events_host_idx').on(t.hostId),
-    startAtIdx:  index('events_start_at_idx').on(t.startAt),
-    categoryIdx: index('events_category_idx').on(t.category),
-    publicIdx:   index('events_public_idx').on(t.isPublic),
+    hostIdx:      index('events_host_idx').on(t.hostId),
+    startAtIdx:   index('events_start_at_idx').on(t.startAt),
+    categoryIdx:  index('events_category_idx').on(t.category),
+    publicIdx:    index('events_public_idx').on(t.isPublic),
+    cancelledIdx: index('events_cancelled_idx').on(t.isCancelled),
   }),
 );
 
@@ -215,8 +233,8 @@ export const eventRsvps = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (t) => ({
-    eventIdx:  index('rsvps_event_idx').on(t.eventId),
-    userIdx:   index('rsvps_user_idx').on(t.userId),
+    eventIdx:   index('rsvps_event_idx').on(t.eventId),
+    userIdx:    index('rsvps_user_idx').on(t.userId),
     uniqueRsvp: index('rsvps_unique_idx').on(t.eventId, t.userId).unique(),
   }),
 );
@@ -239,10 +257,10 @@ export const meetNowCards = pgTable(
     createdAt:     timestamp('created_at', { withTimezone: true }).defaultNow(),
   },
   (t) => ({
-    userIdx:     index('meet_now_user_idx').on(t.userId),
-    createdIdx:  index('meet_now_created_idx').on(t.createdAt),
-    activeIdx:   index('meet_now_active_idx').on(t.isActive),
-    expiresIdx:  index('meet_now_expires_idx').on(t.expiresAt),
+    userIdx:    index('meet_now_user_idx').on(t.userId),
+    createdIdx: index('meet_now_created_idx').on(t.createdAt),
+    activeIdx:  index('meet_now_active_idx').on(t.isActive),
+    expiresIdx: index('meet_now_expires_idx').on(t.expiresAt),
   }),
 );
 
