@@ -4,32 +4,36 @@ function buildQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 60 * 1000,           // 1 min — avoids double-fetch on hydration
-        gcTime: 5 * 60 * 1000,          // 5 min cache retention
-        retry: 1,
+        staleTime:            60 * 1000,       // 1 min — prevents double-fetch on hydration
+        gcTime:               5 * 60 * 1000,   // 5 min GC retention
+        retry:                1,
         refetchOnWindowFocus: false,
+      },
+      mutations: {
+        retry: 0,
       },
       dehydrate: {
         shouldDehydrateQuery: (query) =>
-          defaultShouldDehydrateQuery(query) || query.state.status === 'pending',
+          defaultShouldDehydrateQuery(query) ||
+          query.state.status === 'pending',
       },
     },
   });
 }
 
-/** Client-side singleton — one per browser tab */
+/** Browser singleton — one per tab */
 let browserQueryClient: QueryClient | undefined;
 
 /**
- * Returns a QueryClient appropriate for the current execution context.
- * - Server: always a fresh instance (per-request isolation).
+ * Returns a QueryClient for the current execution environment.
+ * - Server: fresh instance per request (isolation).
  * - Browser: singleton (stable across re-renders).
  */
-export function getQueryClient() {
+export function getQueryClient(): QueryClient {
   if (isServer) return buildQueryClient();
   if (!browserQueryClient) browserQueryClient = buildQueryClient();
   return browserQueryClient;
 }
 
-/** Alias kept for provider bootstrap: `useState(() => makeQueryClient())` */
+/** Alias for provider bootstrap: `useState(() => makeQueryClient())` */
 export const makeQueryClient = buildQueryClient;

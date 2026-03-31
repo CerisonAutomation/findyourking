@@ -1,7 +1,10 @@
 /**
- * Auto-generate with:
- *   npx supabase gen types typescript --project-id <project-id> > src/lib/supabase/types.ts
+ * Database type definitions.
  *
- * For now we export a passthrough Database type so the codebase compiles.
+ * Auto-generate the full typed schema with:
+ *   npx supabase gen types typescript --project-id <project-id> \
+ *     --schema public > src/lib/supabase/types.ts
+ *
+ * Until generated, this passthrough compiles the codebase without errors.
  */
 export type Database = Record<string, unknown>;

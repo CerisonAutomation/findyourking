@@ -13,25 +13,26 @@ import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 
 interface UserContextValue {
-  user: User | null;
+  user:      User | null;
   isLoading: boolean;
-  signOut: () => Promise<void>;
+  signOut:   () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextValue>({
-  user: null,
+  user:      null,
   isLoading: true,
-  signOut: async () => {},
+  signOut:   async () => {},
 });
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const supabase = createClient();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser]           = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
 
+    // getUser() makes a network call to validate the JWT — safe client-side
     supabase.auth.getUser().then(({ data }) => {
       if (mounted) {
         setUser(data.user);
@@ -50,17 +51,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-  }, [supabase]);
+    await fetch('/auth/signout', { method: 'POST' });
+  }, []);
 
-  const value = useMemo(() => ({ user, isLoading, signOut }), [user, isLoading, signOut]);
+  const value = useMemo(
+    () => ({ user, isLoading, signOut }),
+    [user, isLoading, signOut],
+  );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
 
-/** Typed hook — throws if used outside <UserProvider> */
 export function useUser(): UserContextValue {
   const ctx = useContext(UserContext);
-  if (ctx === undefined) throw new Error('useUser must be used within <UserProvider>');
+  if (!ctx) throw new Error('useUser must be used within <UserProvider>');
   return ctx;
 }

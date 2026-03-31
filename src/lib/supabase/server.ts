@@ -3,15 +3,16 @@ import { cookies } from 'next/headers';
 import type { Database } from './types';
 
 /**
- * Server-side Supabase client (Server Components, Server Actions, Route Handlers).
- * Must be called inside a request scope.
+ * Server-side Supabase client.
+ * Use inside Server Components, Server Actions, and Route Handlers.
+ * NEVER use getSession() server-side — always use getClaims() or getUser().
  */
 export async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
@@ -21,7 +22,8 @@ export async function createClient() {
               cookieStore.set(name, value, options),
             );
           } catch {
-            // Called from a Server Component — mutations are a no-op
+            // Called from a Server Component — cookie mutations are a no-op.
+            // The proxy.ts updateSession() handles token refresh.
           }
         },
       },

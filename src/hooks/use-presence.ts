@@ -1,27 +1,32 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 /**
- * Subscribes to Supabase Realtime presence and returns a Set of online user IDs.
- * Only mounts when a current user ID is provided.
+ * Subscribes to Supabase Realtime Presence on `global_presence` channel.
+ * Tracks the current user and returns a Set of all online user IDs.
+ * Cleans up channel on unmount to prevent memory leaks.
  */
 export function usePresence(currentUserId: string | undefined): Set<string> {
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     if (!currentUserId) return;
 
     const supabase = createClient();
-    const channel = supabase.channel('global_presence', {
+    const channel  = supabase.channel('global_presence', {
       config: { presence: { key: currentUserId } },
     });
+
+    channelRef.current = channel;
 
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState<{ user_id: string }>();
-        const ids = new Set(
+        const ids   = new Set(
           Object.values(state)
             .flat()
             .map((p) => p.user_id)
@@ -35,7 +40,10 @@ export function usePresence(currentUserId: string | undefined): Set<string> {
         }
       });
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      void supabase.removeChannel(channel);
+      channelRef.current = null;
+    };
   }, [currentUserId]);
 
   return onlineIds;

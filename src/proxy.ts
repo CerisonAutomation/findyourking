@@ -1,86 +1,59 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { NextResponse, type NextRequest } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
+import { updateSession } from '@/lib/supabase/proxy';
+import { createClient } from '@/lib/supabase/server';
 
-/** Routes that do NOT require authentication */
+/** Routes that bypass auth entirely */
 const PUBLIC_ROUTES = [
+  '/',
   '/login',
   '/signup',
   '/auth',
   '/auth/callback',
   '/auth/confirm',
+  '/auth/error',
 ];
-
-/** Routes that require auth but skip the onboarding check */
-const ONBOARDING_ROUTE = '/onboarding';
 
 function isPublicRoute(pathname: string) {
   return PUBLIC_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
+    (r) => pathname === r || pathname.startsWith(`${r}/`),
   );
 }
 
-export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: { headers: request.headers },
-  });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options });
-          response = NextResponse.next({ request: { headers: request.headers } });
-          response.cookies.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value: '', ...options });
-          response = NextResponse.next({ request: { headers: request.headers } });
-          response.cookies.set({ name, value: '', ...options });
-        },
-      },
-    }
-  );
-
-  // ✅ Use getUser() — server-verified JWT, NOT getSession() which trusts localStorage
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+export async function proxy(request: NextRequest) {
+  // 1. Always refresh session cookie first
+  const response = await updateSession(request);
   const { pathname } = request.nextUrl;
 
-  // Allow public routes through unconditionally
+  // 2. Verify JWT server-side via getClaims (never getSession)
+  const supabase = await createClient();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const loggedIn = !!claimsData?.claims?.sub;
+
+  // 3. Route decisions
   if (isPublicRoute(pathname)) {
-    // If already authenticated and hitting login/signup, send to app
-    if (user && (pathname === '/login' || pathname === '/signup')) {
+    if (loggedIn && (pathname === '/login' || pathname === '/signup')) {
       return NextResponse.redirect(new URL('/discover', request.url));
     }
     return response;
   }
 
-  // Unauthenticated → redirect to login, preserve intended destination
-  if (!user) {
+  if (!loggedIn) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('next', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // Authenticated but hitting root → send to app
   if (pathname === '/') {
     return NextResponse.redirect(new URL('/discover', request.url));
   }
 
-  // Add security headers to every authenticated response
+  // 4. Security headers on every authenticated response
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set(
     'Permissions-Policy',
-    'camera=(), microphone=(), geolocation=(self)'
+    'camera=(), microphone=(), geolocation=(self)',
   );
 
   return response;
@@ -88,13 +61,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico
-     * - public assets (.svg, .png, .jpg, .ico, .webp)
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 };
