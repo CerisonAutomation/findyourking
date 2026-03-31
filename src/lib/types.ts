@@ -56,7 +56,24 @@ export type UserRole         = 'seeker' | 'provider' | 'admin';
 export type SubscriptionTier = 'free' | 'premium' | 'platinum';
 export type BookingStatus    = 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
 export type NotificationType = 'message' | 'booking' | 'favorite' | 'match' | 'system' | 'event';
-export type EventCategory    = 'party' | 'dinner' | 'drinks' | 'outdoor' | 'sports' | 'cultural' | 'travel' | 'gaming' | 'music' | 'casual' | 'other';
+
+/**
+ * Chill-inspired event categories.
+ * Matches the icon-grid type picker in the Create Event flow.
+ */
+export type EventCategory =
+  | 'gym'
+  | 'cinema'
+  | 'dinner'
+  | 'coffee'
+  | 'drinks'
+  | 'hiking'
+  | 'sports'
+  | 'gaming'
+  | 'party'
+  | 'meet'
+  | 'other';
+
 export type RsvpStatus       = 'going' | 'maybe' | 'declined';
 
 // ─── Pagination ───────────────────────────────────────────────────────────────
